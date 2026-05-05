@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude Code lifecycle hook → DualSenseWhispr state file.
+# Claude Code lifecycle hook → VibeController state file.
 #
 # Usage:
 #   claude-state-hook.sh <state>
@@ -10,7 +10,7 @@
 set -e
 
 STATE="${1:-unknown}"
-DIR="$HOME/.dualsense-whispr"
+DIR="$HOME/.vibe-controller"
 mkdir -p "$DIR"
 # Write atomically so the watcher never sees a partial line.
 echo "$STATE" > "$DIR/state.tmp"

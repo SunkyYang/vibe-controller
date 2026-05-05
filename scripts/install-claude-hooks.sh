@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Wire Claude Code lifecycle events into DualSenseWhispr's state file so the
+# Wire Claude Code lifecycle events into VibeController's state file so the
 # controller's light bar mirrors what Claude is doing.
 #
 # Idempotent: it strips any prior claude-state-hook.sh entries first, then

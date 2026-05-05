@@ -3,12 +3,12 @@
 # macOS shows the custom icon in System Settings (Accessibility list etc.)
 # rather than the generic exec icon.
 #
-# Output: .build/release/DualSenseWhispr.app
+# Output: .build/release/VibeController.app
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP_NAME="DualSenseWhispr"
+APP_NAME="VibeController"
 BUILD_DIR="$PROJECT_ROOT/.build/release"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 ICNS="$PROJECT_ROOT/Resources/AppIcon.icns"

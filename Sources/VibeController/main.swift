@@ -705,7 +705,7 @@ final class DualSenseTriggerEffect {
 
 // MARK: - Claude Code state mirroring
 
-/// Watches `~/.dualsense-whispr/state` (written by Claude Code hooks) and
+/// Watches `~/.vibe-controller/state` (written by Claude Code hooks) and
 /// reports state changes on the main queue. State strings are the literal
 /// argument passed to scripts/claude-state-hook.sh — recommend the set
 /// {thinking, tool_use, idle, notification}.
@@ -1519,7 +1519,7 @@ final class StatusBar: NSObject {
         menu.addItem(NSMenuItem.separator())
 
         let quit = NSMenuItem(
-            title: "Quit DualSenseWhispr",
+            title: "Quit VibeController",
             action: #selector(quitApp),
             keyEquivalent: "q"
         )
@@ -1560,7 +1560,7 @@ final class StatusBar: NSObject {
     }
 
     private func setIcon(_ symbol: String) {
-        let img = NSImage(systemSymbolName: symbol, accessibilityDescription: "DualSenseWhispr")
+        let img = NSImage(systemSymbolName: symbol, accessibilityDescription: "VibeController")
         img?.isTemplate = true
         item.button?.image = img
     }
@@ -1610,7 +1610,7 @@ watcher.statusUpdate = { recording in
 }
 
 let claudeStateWatcher = ClaudeStateWatcher(
-    path: NSHomeDirectory() + "/.dualsense-whispr/state"
+    path: NSHomeDirectory() + "/.vibe-controller/state"
 )
 watcher.claudeState = claudeStateWatcher
 claudeStateWatcher.stateChangedHandler = { state in
@@ -1635,7 +1635,7 @@ if !checkAccessibility(prompt: true) {
     print("[!] Grant it in: System Settings -> Privacy & Security -> Accessibility.")
 }
 
-print("DualSenseWhispr started. Click the status bar icon for menu.")
+print("VibeController started. Click the status bar icon for menu.")
 
 for c in GCController.controllers() {
     attach(c)

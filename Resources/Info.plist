@@ -3,16 +3,16 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.sunky.dualsense-whispr</string>
+    <string>com.sunky.vibe-controller</string>
 
     <key>CFBundleName</key>
-    <string>DualSenseWhispr</string>
+    <string>VibeController</string>
 
     <key>CFBundleDisplayName</key>
-    <string>DualSense Whispr</string>
+    <string>Vibe Controller</string>
 
     <key>CFBundleExecutable</key>
-    <string>DualSenseWhispr</string>
+    <string>VibeController</string>
 
     <key>CFBundlePackageType</key>
     <string>APPL</string>
@@ -37,7 +37,7 @@
     <true/>
 
     <key>NSMicrophoneUsageDescription</key>
-    <string>DualSenseWhispr taps the audio input level so the controller's light bar can react to your voice while you dictate.</string>
+    <string>VibeController taps the audio input level so the controller's light bar can react to your voice while you dictate.</string>
 
     <key>NSHumanReadableCopyright</key>
     <string>Copyright (c) 2026 Sunky Yang. MIT License.</string>

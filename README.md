@@ -1,4 +1,4 @@
-# DualSense Whispr
+# Vibe Controller
 
 Use a PS5 DualSense controller as a push-to-talk voice input device on macOS. Pulling the **R2 trigger** toggles dictation in [OpenWhispr](https://github.com/openwhispr/openwhispr); recognized text is injected wherever the cursor sits. Lives in the menu bar, runs as a LaunchAgent at login.
 
@@ -27,7 +27,7 @@ The PS5 controller has been in arm's reach the whole time, with a perfectly good
 DualSense (USB or Bluetooth)
     │  GameController.framework rightTrigger handler
     ▼
-DualSenseWhispr (Swift menu bar app)
+VibeController (Swift menu bar app)
     │  R2 leading edge ─► CGEvent post Option+`
     │                ─► controller.light.color = blue/off
     │                ─► CHHapticEngine bump
@@ -50,15 +50,15 @@ focused application
 - [OpenWhispr](https://github.com/openwhispr/openwhispr) installed and configured with:
   - Dictation hotkey set to `Option+\`` (the backtick key under Esc)
   - Activation mode: `tap` (press once to start, again to stop)
-- **Accessibility permission** granted to the installed app (`~/Applications/DualSenseWhispr.app` after running `launchagent/install.sh`)
+- **Accessibility permission** granted to the installed app (`~/Applications/VibeController.app` after running `launchagent/install.sh`)
 
 ## Quick start
 
 ```bash
-git clone git@github.com:SunkyYang/dualsense-whispr.git
-cd dualsense-whispr
+git clone git@github.com:SunkyYang/vibe-controller.git
+cd vibe-controller
 swift build -c release
-./.build/release/DualSenseWhispr
+./.build/release/VibeController
 ```
 
 A game-controller icon appears in the menu bar. Plug in the DualSense (or pair via Bluetooth — long-press `PS + Create` to enter pairing mode), press R2, dictate, press R2 again. `Ctrl+C` to quit, or click the menu bar icon → Quit.
@@ -69,35 +69,35 @@ A game-controller icon appears in the menu bar. Plug in the DualSense (or pair v
 bash launchagent/install.sh
 ```
 
-This builds release, packages a `.app` bundle (`Info.plist` + custom icon), copies it to `~/Applications/DualSenseWhispr.app`, and bootstraps the agent under `gui/$UID`. The stable install path matters — System Settings → Privacy & Security → Accessibility looks for installed apps in standard locations; pointing trust at the transient `.build/release/` artifact is brittle. Logs go to `~/Library/Logs/dualsense-whispr.{log,err}`.
+This builds release, packages a `.app` bundle (`Info.plist` + custom icon), copies it to `~/Applications/VibeController.app`, and bootstraps the agent under `gui/$UID`. The stable install path matters — System Settings → Privacy & Security → Accessibility looks for installed apps in standard locations; pointing trust at the transient `.build/release/` artifact is brittle. Logs go to `~/Library/Logs/vibe-controller.{log,err}`.
 
-After installing, **System Settings → Privacy & Security → Accessibility** must allow `DualSenseWhispr`. Click `+`, navigate to `~/Applications`, and pick `DualSenseWhispr.app`. Once granted:
+After installing, **System Settings → Privacy & Security → Accessibility** must allow `VibeController`. Click `+`, navigate to `~/Applications`, and pick `VibeController.app`. Once granted:
 
 ```bash
-launchctl kickstart -k gui/$UID/com.sunky.dualsense-whispr
+launchctl kickstart -k gui/$UID/com.sunky.vibe-controller
 ```
 
 Manual control:
 
 ```bash
-launchctl kickstart -k gui/$UID/com.sunky.dualsense-whispr   # restart
-launchctl bootout    gui/$UID/com.sunky.dualsense-whispr     # stop + unload
+launchctl kickstart -k gui/$UID/com.sunky.vibe-controller   # restart
+launchctl bootout    gui/$UID/com.sunky.vibe-controller     # stop + unload
 bash launchagent/uninstall.sh                                # remove
 ```
 
 ## Smoke test (no controller needed)
 
 ```bash
-./.build/release/DualSenseWhispr --fire-once
+./.build/release/VibeController --fire-once
 # or, after installing as a LaunchAgent:
-~/Applications/DualSenseWhispr.app/Contents/MacOS/DualSenseWhispr --fire-once
+~/Applications/VibeController.app/Contents/MacOS/VibeController --fire-once
 ```
 
 Fires `Option+\`` once and exits — verifies the key-event path independently of the controller.
 
 ## Configuration
 
-Two sets of knobs in `Sources/DualSenseWhispr/main.swift`:
+Two sets of knobs in `Sources/VibeController/main.swift`:
 
 ```swift
 let TRIGGER_HIGH: Float = 0.6     // press threshold
@@ -155,14 +155,14 @@ bash scripts/install-claude-hooks.sh    # one-time wiring
 bash scripts/uninstall-claude-hooks.sh
 ```
 
-The installer is idempotent and **non-destructive** — it backs up `~/.claude/settings.json` and uses `jq` to merge five hook entries (UserPromptSubmit, PreToolUse, PostToolUse, Stop, Notification) without touching anything else. Each hook calls `scripts/claude-state-hook.sh <state>`, which writes a single line into `~/.dualsense-whispr/state`. The running app watches that file and updates the light bar.
+The installer is idempotent and **non-destructive** — it backs up `~/.claude/settings.json` and uses `jq` to merge five hook entries (UserPromptSubmit, PreToolUse, PostToolUse, Stop, Notification) without touching anything else. Each hook calls `scripts/claude-state-hook.sh <state>`, which writes a single line into `~/.vibe-controller/state`. The running app watches that file and updates the light bar.
 
 Pre-existing hooks in your settings are preserved; we just append. Open a new Claude Code session for the hooks to take effect.
 
 The state file is just one word — easy to introspect:
 
 ```bash
-cat ~/.dualsense-whispr/state
+cat ~/.vibe-controller/state
 ```
 
 ## Adaptive trigger (USB only)

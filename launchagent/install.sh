@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install DualSenseWhispr as a per-user LaunchAgent.
+# Install VibeController as a per-user LaunchAgent.
 # Order: stop any running copy first, then build + replace the .app, then load.
 # Re-run anytime to refresh the binary / restart the agent.
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-AGENT_LABEL="com.sunky.dualsense-whispr"
+AGENT_LABEL="com.sunky.vibe-controller"
 AGENT_TEMPLATE="$PROJECT_ROOT/launchagent/$AGENT_LABEL.plist"
 AGENT_INSTALLED="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
 LOG_DIR="$HOME/Library/Logs"
 
-SOURCE_APP="$PROJECT_ROOT/.build/release/DualSenseWhispr.app"
+SOURCE_APP="$PROJECT_ROOT/.build/release/VibeController.app"
 INSTALL_DIR="$HOME/Applications"
-INSTALL_APP="$INSTALL_DIR/DualSenseWhispr.app"
-BIN_PATH="$INSTALL_APP/Contents/MacOS/DualSenseWhispr"
+INSTALL_APP="$INSTALL_DIR/VibeController.app"
+BIN_PATH="$INSTALL_APP/Contents/MacOS/VibeController"
 
 echo "==> Stopping any running instance"
 launchctl bootout "gui/$UID" "$AGENT_INSTALLED" 2>/dev/null || true
 # pkill safety net in case the agent was orphaned or run manually.
-pkill -f "DualSenseWhispr" 2>/dev/null || true
+pkill -f "VibeController" 2>/dev/null || true
 # Give launchd a beat to release the binary before we overwrite it.
 sleep 0.3
 
@@ -49,7 +49,7 @@ launchctl enable "gui/$UID/$AGENT_LABEL"
 echo ""
 echo "Installed:  $AGENT_INSTALLED"
 echo "App:        $INSTALL_APP"
-echo "Logs:       $LOG_DIR/dualsense-whispr.{log,err}"
+echo "Logs:       $LOG_DIR/vibe-controller.{log,err}"
 echo ""
 echo "Manual control:"
 echo "  launchctl kickstart -k gui/$UID/$AGENT_LABEL   # restart"

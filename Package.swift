@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "DualSenseWhispr",
+    name: "VibeController",
     platforms: [.macOS(.v11)],
     targets: [
         .executableTarget(
-            name: "DualSenseWhispr",
-            path: "Sources/DualSenseWhispr"
+            name: "VibeController",
+            path: "Sources/VibeController"
         )
     ]
 )

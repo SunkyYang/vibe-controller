@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-AGENT_LABEL="com.sunky.dualsense-whispr"
+AGENT_LABEL="com.sunky.vibe-controller"
 AGENT_INSTALLED="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
-INSTALL_APP="$HOME/Applications/DualSenseWhispr.app"
+INSTALL_APP="$HOME/Applications/VibeController.app"
 
 echo "==> Booting out (if running)"
 launchctl bootout "gui/$UID" "$AGENT_INSTALLED" 2>/dev/null || true

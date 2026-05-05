@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.sunky.dualsense-whispr</string>
+    <string>com.sunky.vibe-controller</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -24,8 +24,8 @@
     <string>Background</string>
 
     <key>StandardOutPath</key>
-    <string>__HOME__/Library/Logs/dualsense-whispr.log</string>
+    <string>__HOME__/Library/Logs/vibe-controller.log</string>
     <key>StandardErrorPath</key>
-    <string>__HOME__/Library/Logs/dualsense-whispr.err</string>
+    <string>__HOME__/Library/Logs/vibe-controller.err</string>
 </dict>
 </plist>
