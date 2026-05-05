@@ -9,8 +9,12 @@ The PS5 controller has been in arm's reach the whole time, with a perfectly good
 ## Feature checklist
 
 - ✅ R2 leading-edge → toggles OpenWhispr dictation (`Option+\``, tap mode)
-- ✅ Light bar **breathes blue** while recording, off when idle (3 s gamma-corrected sine)
-- ✅ Haptic bump on every state change
+- ✅ Face buttons & D-Pad mapped to common keyboard keys (✕→Enter, ○→Esc, D-Pad→arrows)
+- ✅ **Touchpad swipes** → Enter (right) / Esc (left) for accept/reject gestures
+- ✅ Light bar **breathes blue** while recording, **brightness reacts to your voice level**, sweeps in/out on start/stop
+- ✅ Haptic choreography — different patterns for start (`da-DUM`) vs stop (`DUM-da`), error etc.
+- ✅ **Claude Code lifecycle mirrored on the light bar** (thinking / tool use / notification / idle) via Claude Code hooks
+- ✅ **Adaptive trigger weapon mode on R2** (USB only, IOHID output report) — two-stage resistance like a gun trigger
 - ✅ Menu bar icon (no Dock entry, no window) with connection status + Quit
 - ✅ Optional **"Use DualSense Mic"** toggle: switches the system default input to the controller while recording, restores it after (USB-only — see the *Microphone strategy* section)
 - ✅ USB and Bluetooth both work — GameController.framework handles output reports either way
@@ -141,11 +145,43 @@ The on-device DualSense microphone (USB only) is left as an option for niche cas
 - [Phoronix: Sony DualSense Audio Jack Handling Ready For Linux 6.18](https://www.phoronix.com/news/Sony-DualSense-Audio-Handling) — kernel work is USB only
 - [Linux kernel patch: DualSense mic mute support](https://patchwork.kernel.org/project/linux-input/patch/20210215004549.135251-3-roderick@gaikai.com/) — explicitly notes "supported using USB, not yet using Bluetooth (which uses a custom protocol)"
 
+## Optional: Claude Code state mirroring
+
+Make the light bar react to what Claude Code is doing — blue while thinking, purple during tool calls, amber on notifications, dark when idle.
+
+```bash
+bash scripts/install-claude-hooks.sh    # one-time wiring
+# undo with:
+bash scripts/uninstall-claude-hooks.sh
+```
+
+The installer is idempotent and **non-destructive** — it backs up `~/.claude/settings.json` and uses `jq` to merge five hook entries (UserPromptSubmit, PreToolUse, PostToolUse, Stop, Notification) without touching anything else. Each hook calls `scripts/claude-state-hook.sh <state>`, which writes a single line into `~/.dualsense-whispr/state`. The running app watches that file and updates the light bar.
+
+Pre-existing hooks in your settings are preserved; we just append. Open a new Claude Code session for the hooks to take effect.
+
+The state file is just one word — easy to introspect:
+
+```bash
+cat ~/.dualsense-whispr/state
+```
+
+## Adaptive trigger (USB only)
+
+When the controller is plugged in via USB-C, the app sends a `0x02` HID output report to put R2 into "weapon mode": resistance ramps up between positions 2 and 6 of the trigger pull, then snaps loose past position 6. Pull R2 slowly to feel it.
+
+Bluetooth uses a different report ID (`0x31`) that requires a CRC32 trailer; the app currently no-ops the trigger effect over Bluetooth and the trigger feels stock.
+
+Constants are in `DualSenseTriggerEffect.setWeaponMode(...)` — change start/end positions or strength as you like.
+
 ## Roadmap
 
 - [ ] True push-to-talk (hold R2 to record, release to stop) — needs OpenWhispr `activationMode=push`
 - [ ] DualSense lightbar mirroring system status (Spark / Homelab healthcheck color)
-- [ ] D-Pad / face-button mappings for editor and shell shortcuts
+- [ ] L1 / R1 → Ghostty / Claude Code tab switching
+- [ ] Touchpad → mouse cursor (absolute positioning)
+- [ ] Per-app mapping profiles (NSWorkspace frontmost app awareness)
+- [ ] Adaptive trigger over Bluetooth (needs CRC32 on report 0x31)
+- [ ] Battery level in menu bar
 - [ ] State sync with OpenWhispr to avoid recording-state drift if the user also presses the keyboard shortcut
 
 ## License

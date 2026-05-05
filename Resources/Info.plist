@@ -36,6 +36,9 @@
     <key>NSHighResolutionCapable</key>
     <true/>
 
+    <key>NSMicrophoneUsageDescription</key>
+    <string>DualSenseWhispr taps the audio input level so the controller's light bar can react to your voice while you dictate.</string>
+
     <key>NSHumanReadableCopyright</key>
     <string>Copyright (c) 2026 Sunky Yang. MIT License.</string>
 </dict>

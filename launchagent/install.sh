@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # Install DualSenseWhispr as a per-user LaunchAgent.
-# Builds release, packages a proper .app, copies it to ~/Applications,
-# then loads the agent against that stable path.
+# Order: stop any running copy first, then build + replace the .app, then load.
 # Re-run anytime to refresh the binary / restart the agent.
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -12,13 +11,17 @@ AGENT_TEMPLATE="$PROJECT_ROOT/launchagent/$AGENT_LABEL.plist"
 AGENT_INSTALLED="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
 LOG_DIR="$HOME/Library/Logs"
 
-# .build is a transient build artefact directory; copy the bundle to a
-# stable location so System Settings (Accessibility +) and TCC trust
-# attach to a real, discoverable path.
 SOURCE_APP="$PROJECT_ROOT/.build/release/DualSenseWhispr.app"
 INSTALL_DIR="$HOME/Applications"
 INSTALL_APP="$INSTALL_DIR/DualSenseWhispr.app"
 BIN_PATH="$INSTALL_APP/Contents/MacOS/DualSenseWhispr"
+
+echo "==> Stopping any running instance"
+launchctl bootout "gui/$UID" "$AGENT_INSTALLED" 2>/dev/null || true
+# pkill safety net in case the agent was orphaned or run manually.
+pkill -f "DualSenseWhispr" 2>/dev/null || true
+# Give launchd a beat to release the binary before we overwrite it.
+sleep 0.3
 
 echo "==> Building .app bundle"
 bash "$PROJECT_ROOT/scripts/build-app.sh"
@@ -38,9 +41,6 @@ sed \
     -e "s#__BIN__#$BIN_PATH#g" \
     -e "s#__HOME__#$HOME#g" \
     "$AGENT_TEMPLATE" > "$AGENT_INSTALLED"
-
-echo "==> Stopping any running instance"
-launchctl bootout "gui/$UID" "$AGENT_INSTALLED" 2>/dev/null || true
 
 echo "==> Loading agent"
 launchctl bootstrap "gui/$UID" "$AGENT_INSTALLED"
