@@ -5,3 +5,7 @@ Package.resolved
 *.xcodeproj/
 *.xcworkspace/
 .DS_Store
+
+# Generated from AppIcon.svg by scripts/build-icns.sh — only the SVG is source of truth.
+Resources/AppIcon.icns
+Resources/AppIcon.iconset/
