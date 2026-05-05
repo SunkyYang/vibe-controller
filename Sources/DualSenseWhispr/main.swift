@@ -16,19 +16,106 @@ let TRIGGER_HIGH: Float = 0.6
 let TRIGGER_LOW: Float = 0.4
 
 // macOS virtual keycodes (from Carbon/HIToolbox/Events.h)
-let kVK_ANSI_Grave:  CGKeyCode = 0x32
-let kVK_Return:      CGKeyCode = 0x24
-let kVK_Escape:      CGKeyCode = 0x35
-let kVK_UpArrow:     CGKeyCode = 0x7E
-let kVK_DownArrow:   CGKeyCode = 0x7D
-let kVK_LeftArrow:   CGKeyCode = 0x7B
-let kVK_RightArrow:  CGKeyCode = 0x7C
+let kVK_ANSI_Grave:        CGKeyCode = 0x32
+let kVK_Return:            CGKeyCode = 0x24
+let kVK_Escape:            CGKeyCode = 0x35
+let kVK_Tab:               CGKeyCode = 0x30
+let kVK_UpArrow:           CGKeyCode = 0x7E
+let kVK_DownArrow:         CGKeyCode = 0x7D
+let kVK_LeftArrow:         CGKeyCode = 0x7B
+let kVK_RightArrow:        CGKeyCode = 0x7C
+let kVK_ANSI_LeftBracket:  CGKeyCode = 0x21
+let kVK_ANSI_RightBracket: CGKeyCode = 0x1E
+let kVK_Delete:            CGKeyCode = 0x33   // Backspace ("Delete" on Mac keyboards)
+
+/// L2 acts as a controller-side "Fn" modifier. When held, other buttons can
+/// produce different keystrokes. Currently: L2+○ → Delete.
+var l2ModifierHeld: Bool = false
+
+/// Auto-repeat for Delete while L2+○ is held.
+var deleteRepeatTimer: DispatchSourceTimer?
+
+func startDeleteRepeat() {
+    stopDeleteRepeat()
+    tapKey(kVK_Delete)
+    let t = DispatchSource.makeTimerSource(queue: .main)
+    t.schedule(deadline: .now() + 0.4, repeating: 0.045, leeway: .milliseconds(5))
+    t.setEventHandler { tapKey(kVK_Delete) }
+    t.resume()
+    deleteRepeatTimer = t
+}
+
+func stopDeleteRepeat() {
+    deleteRepeatTimer?.cancel()
+    deleteRepeatTimer = nil
+}
 
 // MARK: - Accessibility
 
 func checkAccessibility(prompt: Bool) -> Bool {
     let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
     return AXIsProcessTrustedWithOptions([key: prompt] as CFDictionary)
+}
+
+// MARK: - Keyboard sync (catch user-typed Option+`)
+
+/// CGEventTap that listens to global keyDown events and reports when the user
+/// pressed Option+\` on the actual keyboard (vs us synthesizing it). Lets the
+/// app keep its recording state in sync so the lightbar / haptic feedback
+/// don't drift out of phase with OpenWhispr.
+final class KeyboardSyncWatcher {
+    private var tap: CFMachPort?
+    private var runLoopSource: CFRunLoopSource?
+    var onExternalToggle: (() -> Void)?
+
+    func start() {
+        let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
+        let info = Unmanaged.passUnretained(self).toOpaque()
+        let callback: CGEventTapCallBack = { _, type, event, info in
+            guard let info = info else { return Unmanaged.passUnretained(event) }
+            if type == .keyDown {
+                let kc = event.getIntegerValueField(.keyboardEventKeycode)
+                let flags = event.flags
+                if kc == 0x32 && flags.contains(.maskAlternate) {
+                    let watcher = Unmanaged<KeyboardSyncWatcher>.fromOpaque(info).takeUnretainedValue()
+                    DispatchQueue.main.async {
+                        if !selfPostedBacktickInFlight {
+                            watcher.onExternalToggle?()
+                        }
+                    }
+                }
+            }
+            return Unmanaged.passUnretained(event)
+        }
+        guard let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: mask,
+            callback: callback,
+            userInfo: info
+        ) else {
+            print("[sync] CGEventTap creation failed; keyboard Option+` sync disabled")
+            return
+        }
+        let rl = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), rl, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+        self.tap = tap
+        self.runLoopSource = rl
+        print("[sync] keyboard Option+` listener active")
+    }
+
+    func stop() {
+        if let s = runLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), s, .commonModes)
+        }
+        if let t = tap {
+            CGEvent.tapEnable(tap: t, enable: false)
+        }
+        tap = nil
+        runLoopSource = nil
+    }
 }
 
 // MARK: - Audio device introspection / switching
@@ -77,6 +164,15 @@ enum AudioInputSwitcher {
     }
 
     static func findInputDevice(matching pattern: String) -> AudioDeviceID? {
+        return findDevice(matching: pattern, scope: kAudioDevicePropertyScopeInput)
+    }
+
+    static func findOutputDevice(matching pattern: String) -> AudioDeviceID? {
+        return findDevice(matching: pattern, scope: kAudioDevicePropertyScopeOutput)
+    }
+
+    private static func findDevice(matching pattern: String,
+                                   scope: AudioObjectPropertyScope) -> AudioDeviceID? {
         var addr = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -92,7 +188,7 @@ enum AudioInputSwitcher {
             guard let n = name(of: id), n.lowercased().contains(pat) else { continue }
             var streamAddr = AudioObjectPropertyAddress(
                 mSelector: kAudioDevicePropertyStreamConfiguration,
-                mScope: kAudioDevicePropertyScopeInput,
+                mScope: scope,
                 mElement: kAudioObjectPropertyElementMain
             )
             var bufSize: UInt32 = 0
@@ -106,6 +202,35 @@ enum AudioInputSwitcher {
             if total > 0 { return id }
         }
         return nil
+    }
+
+    // MARK: Output
+
+    static var defaultOutputID: AudioDeviceID? {
+        var id = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectGetPropertyData(system, &addr, 0, nil, &size, &id) == noErr,
+              id != 0 else { return nil }
+        return id
+    }
+
+    @discardableResult
+    static func setDefaultOutput(_ id: AudioDeviceID) -> Bool {
+        var id = id
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        return AudioObjectSetPropertyData(
+            system, &addr, 0, nil,
+            UInt32(MemoryLayout<AudioDeviceID>.size), &id
+        ) == noErr
     }
 }
 
@@ -141,8 +266,34 @@ func tapKey(_ keyCode: CGKeyCode, flags: CGEventFlags = []) {
     up.post(tap: .cgSessionEventTap)
 }
 
+/// Set briefly while we're synthesizing Option+\`, so the global keyboard
+/// listener can ignore the event and avoid double-toggling.
+var selfPostedBacktickInFlight = false
+
 func tapOptionBacktick() {
+    selfPostedBacktickInFlight = true
     tapKey(kVK_ANSI_Grave, flags: .maskAlternate)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+        selfPostedBacktickInFlight = false
+    }
+}
+
+/// Synthesize a string of characters via per-character Unicode keyboard events.
+/// Works for ASCII / ANSI / extended characters without needing per-character
+/// virtual-keycode lookup. Note: the receiving app must accept text input (TUI
+/// or text field). Bracketed paste-aware shells will see this as raw typing.
+func typeString(_ string: String) {
+    for scalar in string.unicodeScalars {
+        var u = UniChar(scalar.value)
+        guard
+            let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
+            let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
+        else { continue }
+        down.keyboardSetUnicodeString(stringLength: 1, unicodeString: &u)
+        up.keyboardSetUnicodeString(stringLength: 1, unicodeString: &u)
+        down.post(tap: .cgSessionEventTap)
+        up.post(tap: .cgSessionEventTap)
+    }
 }
 
 // MARK: - Haptics
@@ -384,18 +535,20 @@ final class BreathingLight {
 // MARK: - Adaptive trigger (USB only, IOHID output report)
 
 /// Drives the DualSense's R2 adaptive-trigger motors directly via an IOHID
-/// output report. USB-only MVP — Bluetooth needs a CRC32 on report id 0x31
-/// which we don't implement yet.
-///
-/// kIOHIDMaxOutputReportSize for DualSense is 48 over USB (1 byte report ID
-/// + 47-byte payload) and 79 over Bluetooth. We pass the 47-byte payload
-/// to IOHIDDeviceSetReport with reportID=0x02 separately.
+/// output report. Supports both transports:
+///   - USB:       report 0x02 with 47-byte payload (kIOHIDMaxOutputReportSize=48)
+///   - Bluetooth: report 0x31 with 78-byte payload (size 79), trailer is
+///                CRC32 over [0xa2, 0x31, payload[0..73]]
 ///
 /// Mode 0x02 = "weapon": resistance ramps up between start..end, then
 /// snaps loose past end (the gun-trigger feel).
 final class DualSenseTriggerEffect {
+    private enum Transport { case usb, bluetooth }
+
     private let manager: IOHIDManager
     private var device: IOHIDDevice?
+    private var transport: Transport = .usb
+    private var btSeqTag: UInt8 = 0
 
     init() {
         manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
@@ -415,11 +568,10 @@ final class DualSenseTriggerEffect {
         }
     }
 
-    /// Locate a USB-attached DualSense (47-byte output report). Returns true on success.
+    /// Locate any DualSense (USB or Bluetooth). Returns true on success.
     @discardableResult
     func reacquire() -> Bool {
-        let raw = IOHIDManagerCopyDevices(manager)
-        guard let set = raw as? Set<IOHIDDevice> else {
+        guard let set = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> else {
             print("[trigger] reacquire: copy returned nil")
             device = nil
             return false
@@ -427,55 +579,69 @@ final class DualSenseTriggerEffect {
         print("[trigger] reacquire: \(set.count) DualSense IOHID device(s) visible")
         for d in set {
             let size = (IOHIDDeviceGetProperty(d, kIOHIDMaxOutputReportSizeKey as CFString) as? Int) ?? -1
-            let transport = IOHIDDeviceGetProperty(d, kIOHIDTransportKey as CFString) as? String ?? "?"
-            print("[trigger]   device: outputSize=\(size) transport=\(transport)")
+            let tx = IOHIDDeviceGetProperty(d, kIOHIDTransportKey as CFString) as? String ?? "?"
+            print("[trigger]   device: outputSize=\(size) transport=\(tx)")
         }
-        let usb = set.first { d in
+        // Prefer USB (smaller report, no CRC math).
+        if let usb = set.first(where: { d in
             (IOHIDDeviceGetProperty(d, kIOHIDMaxOutputReportSizeKey as CFString) as? Int) == 48
-        }
-        device = usb
-        if device != nil {
+        }) {
+            device = usb
+            transport = .usb
             print("[trigger] using USB IOHID for adaptive trigger")
             return true
         }
-        if !set.isEmpty {
-            print("[trigger] only Bluetooth IOHID seen — adaptive trigger skipped (CRC32 not implemented)")
+        if let bt = set.first(where: { d in
+            let s = IOHIDDeviceGetProperty(d, kIOHIDMaxOutputReportSizeKey as CFString) as? Int
+            return s == 79 || s == 78
+        }) {
+            device = bt
+            transport = .bluetooth
+            print("[trigger] using Bluetooth IOHID for adaptive trigger (CRC32 enabled)")
+            return true
         }
+        print("[trigger] no usable DualSense IOHID device")
         return false
     }
 
     /// R2 two-stage feel. start/end are 0..9 positions across the trigger pull;
     /// strength 0..255 controls the resistance peak.
     func setWeaponMode(start: UInt8 = 2, end: UInt8 = 6, strength: UInt8 = 255) {
-        guard let device = device else { return }
-        var payload = [UInt8](repeating: 0, count: 47)
-        // valid_flag0 = 0xFF enables every field in the rumble+haptics+trigger
-        // group. We zero the rumble bytes so that group doesn't fight haptics.
-        // valid_flag1 = 0x00 leaves lightbar / LEDs / mute / power-save alone
-        // so GameController's lightbar control still wins.
-        payload[0] = 0xFF
-        payload[1] = 0x00
-        payload[2] = 0           // rumble right (off)
-        payload[3] = 0           // rumble left (off)
-        payload[10] = 0x02       // right trigger mode = weapon
-        payload[11] = start
-        payload[12] = end
-        payload[13] = strength
-        sendReport(device: device, payload: payload, label: "weapon")
+        sendWeapon(mode: 0x02, start: start, end: end, strength: strength, label: "weapon")
     }
 
     /// Release any resistance.
     func reset() {
-        guard let device = device else { return }
-        var payload = [UInt8](repeating: 0, count: 47)
-        payload[0] = 0xFF
-        payload[1] = 0x00
-        payload[10] = 0x00       // off
-        sendReport(device: device, payload: payload, label: "reset")
+        sendWeapon(mode: 0x00, start: 0, end: 0, strength: 0, label: "reset")
     }
 
-    private func sendReport(device: IOHIDDevice, payload: [UInt8], label: String) {
-        let result = payload.withUnsafeBufferPointer { buf -> IOReturn in
+    /// Build the 47-byte common payload. Same layout for USB and BT.
+    private func commonPayload(mode: UInt8, start: UInt8, end: UInt8, strength: UInt8) -> [UInt8] {
+        var payload = [UInt8](repeating: 0, count: 47)
+        payload[0] = 0xFF       // valid_flag0
+        payload[1] = 0x00       // valid_flag1 (leave lightbar / LEDs alone)
+        payload[2] = 0          // rumble right
+        payload[3] = 0          // rumble left
+        payload[10] = mode      // right trigger mode
+        payload[11] = start
+        payload[12] = end
+        payload[13] = strength
+        return payload
+    }
+
+    private func sendWeapon(mode: UInt8, start: UInt8, end: UInt8, strength: UInt8, label: String) {
+        guard let device = device else { return }
+        let common = commonPayload(mode: mode, start: start, end: end, strength: strength)
+        switch transport {
+        case .usb:
+            sendUSB(device: device, common: common, label: label)
+        case .bluetooth:
+            sendBT(device: device, common: common, label: label)
+        }
+    }
+
+    private func sendUSB(device: IOHIDDevice, common: [UInt8], label: String) {
+        let result = common.withUnsafeBufferPointer { buf -> IOReturn in
             guard let base = buf.baseAddress else { return kIOReturnBadArgument }
             return IOHIDDeviceSetReport(
                 device,
@@ -486,8 +652,54 @@ final class DualSenseTriggerEffect {
             )
         }
         if result != kIOReturnSuccess {
-            print("[trigger] SetReport(\(label)) failed: \(String(format: "0x%x", result))")
+            print("[trigger] usb SetReport(\(label)) failed: \(String(format: "0x%x", result))")
         }
+    }
+
+    private func sendBT(device: IOHIDDevice, common: [UInt8], label: String) {
+        // BT layout: seq_tag, tag (0x10), 47-byte common, 24 bytes reserved, CRC32 (4 bytes).
+        // Total payload = 78 bytes.
+        var payload = [UInt8](repeating: 0, count: 78)
+        btSeqTag = (btSeqTag &+ 1) & 0x0F
+        payload[0] = (btSeqTag << 4) | 0x00     // sequence in upper nibble
+        payload[1] = 0x10                       // fixed tag
+        for (i, b) in common.enumerated() {
+            payload[2 + i] = b
+        }
+        // payload[49..72] reserved (zeroed)
+        // CRC32 over [0xa2, 0x31, payload[0..73]]
+        var crcInput: [UInt8] = [0xa2, 0x31]
+        crcInput.append(contentsOf: payload[0..<74])
+        let crc = Self.crc32(crcInput)
+        payload[74] = UInt8(crc & 0xFF)
+        payload[75] = UInt8((crc >> 8) & 0xFF)
+        payload[76] = UInt8((crc >> 16) & 0xFF)
+        payload[77] = UInt8((crc >> 24) & 0xFF)
+        let result = payload.withUnsafeBufferPointer { buf -> IOReturn in
+            guard let base = buf.baseAddress else { return kIOReturnBadArgument }
+            return IOHIDDeviceSetReport(
+                device,
+                kIOHIDReportTypeOutput,
+                CFIndex(0x31),
+                base,
+                CFIndex(buf.count)
+            )
+        }
+        if result != kIOReturnSuccess {
+            print("[trigger] bt SetReport(\(label)) failed: \(String(format: "0x%x", result))")
+        }
+    }
+
+    /// Standard CRC-32 (IEEE 802.3, reversed poly 0xEDB88320), seed 0xFFFFFFFF, output xor 0xFFFFFFFF.
+    static func crc32(_ data: [UInt8]) -> UInt32 {
+        var crc: UInt32 = 0xFFFFFFFF
+        for byte in data {
+            crc ^= UInt32(byte)
+            for _ in 0..<8 {
+                crc = (crc & 1 != 0) ? ((crc >> 1) ^ 0xEDB88320) : (crc >> 1)
+            }
+        }
+        return crc ^ 0xFFFFFFFF
     }
 }
 
@@ -643,53 +855,324 @@ final class MicLevelMonitor {
     }
 }
 
-// MARK: - Touchpad swipe
+// MARK: - Touchpad input (mouse + click)
 
-/// One-finger horizontal swipe on the DualSense touchpad → Enter / Esc.
-/// Right swipe = Enter (accept). Left swipe = Esc (reject).
-///
-/// GCControllerDirectionPad does not surface a touch-begin/touch-end event;
-/// when the finger lifts the axes snap back to (0, 0). So we treat the
-/// arrival of the (0, 0) sample as the release boundary and use the most
-/// recently observed non-zero position as the gesture endpoint.
-final class TouchpadSwipe {
-    private var firstX: Float?
-    private var firstY: Float?
-    private var lastX: Float = 0
-    private var lastY: Float = 0
-    private let threshold: Float = 0.5
-    private let zeroEpsilon: Float = 0.02
+/// DualSense touchpad behavior:
+///  - Single-finger movement → relative cursor motion (always in mouse mode)
+///  - Touchpad physically clicked → left mouse button (down on click,
+///    up on release). Click + finger still = single click; click + drag =
+///    proper drag.
+final class TouchpadInput {
+    private var prevFingerX: Float = 0
+    private var prevFingerY: Float = 0
+    private var hasFinger = false
+    private var mouseButtonHeld = false
 
-    func attach(_ pad: GCControllerDirectionPad) {
+    // Wider zero-band: GameController reports non-zero noise (~0.01-0.04)
+    // when the finger is just resting on the pad. Anything inside this is "no touch".
+    private let zeroEps: Float = 0.05
+    // Per-sample movement threshold: tiny axis jitter doesn't move the cursor.
+    // Touchpad axis range is -1..1 over ~52mm, so 0.004 ≈ 0.2mm of finger motion.
+    private let minDelta: Float = 0.004
+    private let mouseSensitivity: CGFloat = 350
+
+    func attach(touchpadPrimary pad: GCControllerDirectionPad,
+                touchpadButton button: GCControllerButtonInput?)
+    {
         pad.valueChangedHandler = { [weak self] _, x, y in
+            self?.handleAxis(x: x, y: y)
+        }
+        button?.pressedChangedHandler = { [weak self] _, _, pressed in
+            self?.handleClick(pressed: pressed)
+        }
+    }
+
+    private func handleAxis(x: Float, y: Float) {
+        let released = abs(x) < zeroEps && abs(y) < zeroEps
+        if released {
+            hasFinger = false
+            return
+        }
+        if !hasFinger {
+            hasFinger = true
+            prevFingerX = x
+            prevFingerY = y
+            return
+        }
+        let dx = x - prevFingerX
+        let dy = y - prevFingerY
+        // Skip motion below the per-sample noise floor; both axes must be quiet.
+        if abs(dx) < minDelta && abs(dy) < minDelta {
+            return
+        }
+        prevFingerX = x
+        prevFingerY = y
+        moveCursor(dx: dx, dy: dy)
+    }
+
+    private func handleClick(pressed: Bool) {
+        mouseButtonHeld = pressed
+        postMouseButton(down: pressed)
+    }
+
+    private func currentCursor() -> CGPoint {
+        return CGEvent(source: nil)?.location ?? .zero
+    }
+
+    private func moveCursor(dx: Float, dy: Float) {
+        let cur = currentCursor()
+        // Touchpad y axis: positive = up; screen y axis: positive = down. Invert.
+        let nx = cur.x + CGFloat(dx) * mouseSensitivity
+        let ny = cur.y - CGFloat(dy) * mouseSensitivity
+        let event = CGEvent(
+            mouseEventSource: nil,
+            mouseType: mouseButtonHeld ? .leftMouseDragged : .mouseMoved,
+            mouseCursorPosition: CGPoint(x: nx, y: ny),
+            mouseButton: .left
+        )
+        event?.post(tap: .cgSessionEventTap)
+    }
+
+    private func postMouseButton(down: Bool) {
+        let cur = currentCursor()
+        let event = CGEvent(
+            mouseEventSource: nil,
+            mouseType: down ? .leftMouseDown : .leftMouseUp,
+            mouseCursorPosition: cur,
+            mouseButton: .left
+        )
+        event?.post(tap: .cgSessionEventTap)
+    }
+}
+
+// MARK: - D-Pad auto-repeat
+
+/// Holds-down behavior for the D-Pad: pressing fires a key immediately, then
+/// after a short delay starts repeating it at a steady rate. Mirrors macOS's
+/// own keyboard repeat (initial pause + fast cadence). Only one key repeats
+/// at a time (last pressed wins).
+final class DPadAutoRepeat {
+    private var timer: DispatchSourceTimer?
+    private var currentKey: CGKeyCode?
+    private let initialDelay: TimeInterval = 0.4
+    private let repeatInterval: TimeInterval = 0.045
+
+    func attach(_ dpad: GCControllerDirectionPad) {
+        bind(dpad.up,    key: kVK_UpArrow)
+        bind(dpad.down,  key: kVK_DownArrow)
+        bind(dpad.left,  key: kVK_LeftArrow)
+        bind(dpad.right, key: kVK_RightArrow)
+    }
+
+    private func bind(_ button: GCControllerButtonInput, key: CGKeyCode) {
+        button.pressedChangedHandler = { [weak self] _, _, pressed in
             guard let self = self else { return }
-            let isReleased = abs(x) < self.zeroEpsilon && abs(y) < self.zeroEpsilon
-            if isReleased {
-                if let fx = self.firstX, let fy = self.firstY {
-                    let dx = self.lastX - fx
-                    let dy = self.lastY - fy
-                    self.firstX = nil
-                    self.firstY = nil
-                    self.lastX = 0
-                    self.lastY = 0
-                    if abs(dx) > self.threshold && abs(dx) > abs(dy) {
-                        if dx > 0 {
-                            print("[touchpad] swipe right -> Enter")
-                            tapKey(kVK_Return)
-                        } else {
-                            print("[touchpad] swipe left -> Esc")
-                            tapKey(kVK_Escape)
-                        }
-                    }
-                }
-            } else {
-                if self.firstX == nil {
-                    self.firstX = x
-                    self.firstY = y
-                }
-                self.lastX = x
-                self.lastY = y
+            if pressed {
+                self.startRepeat(for: key)
+            } else if self.currentKey == key {
+                self.stopRepeat()
             }
+        }
+    }
+
+    private func startRepeat(for key: CGKeyCode) {
+        stopRepeat()
+        currentKey = key
+        // Fire once immediately for instant feedback.
+        tapKey(key)
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        t.schedule(deadline: .now() + initialDelay, repeating: repeatInterval, leeway: .milliseconds(5))
+        t.setEventHandler { [weak self] in
+            guard let self = self, let k = self.currentKey else { return }
+            tapKey(k)
+        }
+        t.resume()
+        timer = t
+    }
+
+    private func stopRepeat() {
+        timer?.cancel()
+        timer = nil
+        currentKey = nil
+    }
+
+    func stop() {
+        stopRepeat()
+    }
+}
+
+// MARK: - Right stick → mouse cursor
+
+/// Drives the cursor with the right thumbstick. ~60 fps timer, gain
+/// follows a square curve past the dead zone so weak pushes give precise
+/// micro-motion and full-deflection ramps to a fast traversal speed.
+/// While `mouseHeld` is true (set by the X/□ button handler), motion is
+/// emitted as leftMouseDragged so OS drag tracking works.
+final class StickMouseMover {
+    private var timer: DispatchSourceTimer?
+    private var currentX: Float = 0
+    private var currentY: Float = 0
+    private let deadZone: Float = 0.15
+    private let maxStep: CGFloat = 60   // pixels per tick at full deflection (60 fps)
+    var mouseHeld: Bool = false
+
+    func attach(_ stick: GCControllerDirectionPad) {
+        stick.valueChangedHandler = { [weak self] _, x, y in
+            self?.currentX = x
+            self?.currentY = y
+        }
+    }
+
+    func start() {
+        stop()
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        t.schedule(deadline: .now(), repeating: .milliseconds(16))   // ~60 fps
+        t.setEventHandler { [weak self] in self?.tick() }
+        t.resume()
+        timer = t
+    }
+
+    func stop() {
+        timer?.cancel()
+        timer = nil
+        currentX = 0
+        currentY = 0
+    }
+
+    private func tick() {
+        let x = currentX
+        let y = currentY
+        let mag = sqrt(x * x + y * y)
+        guard mag > deadZone else { return }
+        let normalized = (mag - deadZone) / (1 - deadZone)
+        let curved = normalized * normalized
+        let speed = CGFloat(curved) * maxStep
+        let dx = CGFloat(x / mag) * speed
+        let dy = CGFloat(-y / mag) * speed                 // y up = screen y up
+        moveMouse(dx: dx, dy: dy)
+    }
+
+    private func moveMouse(dx: CGFloat, dy: CGFloat) {
+        let cur = CGEvent(source: nil)?.location ?? .zero
+        let nx = cur.x + dx
+        let ny = cur.y + dy
+        let event = CGEvent(
+            mouseEventSource: nil,
+            mouseType: mouseHeld ? .leftMouseDragged : .mouseMoved,
+            mouseCursorPosition: CGPoint(x: nx, y: ny),
+            mouseButton: .left
+        )
+        event?.post(tap: .cgSessionEventTap)
+    }
+}
+
+// MARK: - Left stick → scroll wheel
+
+/// Reads the left thumbstick's Y axis on a 30 fps timer; while held outside
+/// a small dead zone, posts a synthesized scroll-wheel event so you can
+/// scroll Claude Code / terminal output without leaving the controller.
+final class StickScroller {
+    private var timer: DispatchSourceTimer?
+    private var currentY: Float = 0
+    private let deadZone: Float = 0.18
+    private let maxStep: Int32 = 70  // pixels per tick at full deflection
+
+    func attach(_ stick: GCControllerDirectionPad) {
+        stick.valueChangedHandler = { [weak self] _, _, y in
+            self?.currentY = y
+        }
+    }
+
+    func start() {
+        stop()
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        t.schedule(deadline: .now(), repeating: .milliseconds(33))   // ~30 fps
+        t.setEventHandler { [weak self] in self?.tick() }
+        t.resume()
+        timer = t
+    }
+
+    func stop() {
+        timer?.cancel()
+        timer = nil
+        currentY = 0
+    }
+
+    private func tick() {
+        let y = currentY
+        let absY = abs(y)
+        guard absY > deadZone else { return }
+        let normalized = (absY - deadZone) / (1.0 - deadZone)
+        let curved = normalized * normalized                      // ease-in
+        let step = Int32(curved * Float(maxStep)) * (y > 0 ? 1 : -1)
+        guard step != 0 else { return }
+        let event = CGEvent(
+            scrollWheelEvent2Source: nil,
+            units: .pixel,
+            wheelCount: 1,
+            wheel1: step,
+            wheel2: 0,
+            wheel3: 0
+        )
+        event?.post(tap: .cgSessionEventTap)
+    }
+}
+
+// MARK: - Battery monitor
+
+/// Polls the controller battery once a minute; pushes "Battery: NN%" to the
+/// menu bar status line and fires a haptic + log when the device drops below
+/// 20% on its own power.
+final class BatteryMonitor {
+    weak var controller: GCController?
+    var bumper: HapticBumper?
+    var statusUpdate: ((String?) -> Void)?
+
+    private var timer: DispatchSourceTimer?
+    private var lowAlertFired = false
+
+    init(controller: GCController) {
+        self.controller = controller
+    }
+
+    func start() {
+        stop()
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        t.schedule(deadline: .now() + .seconds(2), repeating: .seconds(60), leeway: .seconds(5))
+        t.setEventHandler { [weak self] in self?.tick() }
+        t.resume()
+        timer = t
+        tick()   // immediate first read
+    }
+
+    func stop() {
+        timer?.cancel()
+        timer = nil
+    }
+
+    private func tick() {
+        guard let battery = controller?.battery else {
+            statusUpdate?(nil)
+            return
+        }
+        let pct = Int((battery.batteryLevel * 100).rounded())
+        let suffix: String
+        switch battery.batteryState {
+        case .charging:    suffix = " ⚡"
+        case .full:        suffix = " ⚡✓"
+        case .discharging: suffix = ""
+        default:           suffix = " ?"
+        }
+        statusUpdate?("Battery: \(pct)%\(suffix)")
+
+        let isLow = battery.batteryLevel > 0 && battery.batteryLevel < 0.20
+        let charging = (battery.batteryState == .charging || battery.batteryState == .full)
+        if isLow && !charging && !lowAlertFired {
+            lowAlertFired = true
+            print("[battery] low (\(pct)%) — please charge")
+            bumper?.bump(intensity: 1.0, sharpness: 0.9, duration: 0.15)
+        } else if !isLow || charging {
+            lowAlertFired = false
         }
     }
 }
@@ -700,10 +1183,14 @@ final class TriggerWatcher {
     weak var controller: GCController?
     var bumper: HapticBumper?
     var breathing: BreathingLight?
-    var touchpad: TouchpadSwipe?
+    var touchpad: TouchpadInput?
     var micMonitor: MicLevelMonitor?
     var claudeState: ClaudeStateWatcher?
     var trigger: DualSenseTriggerEffect?
+    var stickScroller: StickScroller?
+    var stickMouse: StickMouseMover?
+    var dpadRepeat: DPadAutoRepeat?
+    var battery: BatteryMonitor?
     var statusUpdate: ((Bool) -> Void)?
 
     private var pressed = false
@@ -788,6 +1275,33 @@ final class TriggerWatcher {
         }
     }
 
+    /// Called by KeyboardSyncWatcher when the user pressed Option+` on the
+    /// actual keyboard. Mirrors the hotkey-driven side of `handle(value:)`
+    /// without re-posting the keystroke or fighting OpenWhispr.
+    func handleExternalToggle() {
+        recording.toggle()
+        statusUpdate?(recording)
+        if recording {
+            claudeState?.suspend()
+            bumper?.playRecordingStart()
+            breathing?.start()
+            if micMonitor == nil { micMonitor = MicLevelMonitor() }
+            micMonitor?.levelHandler = { [weak self] level in
+                self?.breathing?.currentMicLevel = level
+            }
+            micMonitor?.start()
+        } else {
+            bumper?.playRecordingStop()
+            breathing?.stop()
+            micMonitor?.stop()
+            breathing?.currentMicLevel = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.claudeState?.resume()
+            }
+        }
+        print("[sync] external Option+` -> recording=\(recording)")
+    }
+
     func resetForDisconnect() {
         pressed = false
         if recording {
@@ -842,13 +1356,11 @@ func attach(_ controller: GCController) {
     watcher.controller = controller
     watcher.bumper = HapticBumper(controller: controller)
     watcher.breathing = BreathingLight(controller: controller)
-    if #available(macOS 11.3, *), let dualSense = gamepad as? GCDualSenseGamepad {
-        let tp = TouchpadSwipe()
-        tp.attach(dualSense.touchpadPrimary)
-        watcher.touchpad = tp
-    }
+    // The DualSense touchpad as a mouse drifts noticeably under capacitive noise.
+    // We disable it on purpose; right stick + buttonX (□) replace it cleanly.
 
-    // Adaptive trigger over IOHID (USB only). No-op on Bluetooth.
+    // Adaptive trigger over IOHID. USB sends report 0x02; Bluetooth sends
+    // report 0x31 with CRC32 trailer.
     if let trig = watcher.trigger, trig.reacquire() {
         trig.setWeaponMode()
     }
@@ -864,39 +1376,116 @@ func attach(_ controller: GCController) {
         watcher.handle(value: value)
     }
 
+    // L2 as a controller-side modifier ("Fn" on the gamepad). Holding it
+    // changes the meaning of other buttons (currently L2+○ = Delete).
+    gamepad.leftTrigger.pressedChangedHandler = { _, _, pressed in
+        l2ModifierHeld = pressed
+    }
+
     // Button -> keyboard mappings (PS5 face buttons + D-Pad).
     // GCExtendedGamepad uses Xbox naming, so:
     //   buttonA = Cross (✕ / "X key" in PS5 lingo)
     //   buttonB = Circle (○)
+    //   buttonX = Square (□)
+    //   buttonY = Triangle (△)
     gamepad.buttonA.pressedChangedHandler = { _, _, pressed in
         if pressed { tapKey(kVK_Return) }
     }
     gamepad.buttonB.pressedChangedHandler = { _, _, pressed in
-        if pressed { tapKey(kVK_Escape) }
+        if pressed {
+            if l2ModifierHeld {
+                startDeleteRepeat()
+            } else {
+                tapKey(kVK_Escape)
+            }
+        } else {
+            // Always stop the delete repeat on release; harmless when in Esc mode.
+            stopDeleteRepeat()
+        }
     }
-    gamepad.dpad.up.pressedChangedHandler = { _, _, pressed in
-        if pressed { tapKey(kVK_UpArrow) }
+    // □ acts as the left mouse button (paired with the right stick → cursor).
+    gamepad.buttonX.pressedChangedHandler = { _, _, pressed in
+        watcher.stickMouse?.mouseHeld = pressed
+        let cur = CGEvent(source: nil)?.location ?? .zero
+        let event = CGEvent(
+            mouseEventSource: nil,
+            mouseType: pressed ? .leftMouseDown : .leftMouseUp,
+            mouseCursorPosition: cur,
+            mouseButton: .left
+        )
+        event?.post(tap: .cgSessionEventTap)
     }
-    gamepad.dpad.down.pressedChangedHandler = { _, _, pressed in
-        if pressed { tapKey(kVK_DownArrow) }
+    gamepad.buttonY.pressedChangedHandler = { _, _, pressed in
+        if pressed {
+            typeString("/compact")
+            tapKey(kVK_Return)
+        }
     }
-    gamepad.dpad.left.pressedChangedHandler = { _, _, pressed in
-        if pressed { tapKey(kVK_LeftArrow) }
+    // L3 (left thumbstick click) → /clear, taking over what □ used to do.
+    gamepad.leftThumbstickButton?.pressedChangedHandler = { _, _, pressed in
+        if pressed {
+            typeString("/clear")
+            tapKey(kVK_Return)
+        }
     }
-    gamepad.dpad.right.pressedChangedHandler = { _, _, pressed in
-        if pressed { tapKey(kVK_RightArrow) }
+    let dpadRepeat = DPadAutoRepeat()
+    dpadRepeat.attach(gamepad.dpad)
+    watcher.dpadRepeat = dpadRepeat
+    // Shoulders → Cmd+[ / Cmd+] (Ghostty / Claude Code tab switching).
+    gamepad.leftShoulder.pressedChangedHandler = { _, _, pressed in
+        if pressed { tapKey(kVK_ANSI_LeftBracket, flags: .maskCommand) }
     }
+    gamepad.rightShoulder.pressedChangedHandler = { _, _, pressed in
+        if pressed { tapKey(kVK_ANSI_RightBracket, flags: .maskCommand) }
+    }
+    // PS / home button → Cmd+Tab. Only present on some controllers; macOS may
+    // also intercept the Home button entirely depending on system policy.
+    gamepad.buttonHome?.pressedChangedHandler = { _, _, pressed in
+        if pressed { tapKey(kVK_Tab, flags: .maskCommand) }
+    }
+
+    // Left stick → mouse cursor (paired with □ as left button).
+    let mouseMover = StickMouseMover()
+    mouseMover.attach(gamepad.leftThumbstick)
+    mouseMover.start()
+    watcher.stickMouse = mouseMover
+
+    // Right stick → vertical scroll wheel (continuous).
+    let scroller = StickScroller()
+    scroller.attach(gamepad.rightThumbstick)
+    scroller.start()
+    watcher.stickScroller = scroller
+
+    // Battery monitor.
+    let battery = BatteryMonitor(controller: controller)
+    battery.bumper = watcher.bumper
+    battery.statusUpdate = { line in
+        DispatchQueue.main.async {
+            statusBar.setBattery(line)
+        }
+    }
+    battery.start()
+    watcher.battery = battery
 }
 
 func detach(_ controller: GCController) {
     print("[disconnect] \(controller.vendorName ?? "Unknown")")
     if watcher.controller === controller {
         watcher.trigger?.reset()
+        watcher.stickScroller?.stop()
+        watcher.stickMouse?.stop()
+        watcher.dpadRepeat?.stop()
+        watcher.battery?.stop()
         watcher.resetForDisconnect()
         watcher.breathing = nil
         watcher.bumper = nil
         watcher.touchpad = nil
+        watcher.stickScroller = nil
+        watcher.stickMouse = nil
+        watcher.dpadRepeat = nil
+        watcher.battery = nil
         watcher.controller = nil
+        statusBar.setBattery(nil)
     }
 }
 
@@ -905,6 +1494,7 @@ func detach(_ controller: GCController) {
 final class StatusBar: NSObject {
     let item: NSStatusItem
     private let statusItem = NSMenuItem(title: "Status: scanning…", action: nil, keyEquivalent: "")
+    private let batteryItem = NSMenuItem(title: "Battery: —", action: nil, keyEquivalent: "")
     private let micToggleItem = NSMenuItem(
         title: "Use DualSense Mic",
         action: #selector(toggleDualSenseMic),
@@ -917,7 +1507,10 @@ final class StatusBar: NSObject {
         setIcon("gamecontroller")
         let menu = NSMenu()
         statusItem.isEnabled = false
+        batteryItem.isEnabled = false
+        batteryItem.isHidden = true
         menu.addItem(statusItem)
+        menu.addItem(batteryItem)
         menu.addItem(NSMenuItem.separator())
 
         micToggleItem.target = self
@@ -950,6 +1543,16 @@ final class StatusBar: NSObject {
 
     func setConnected(_ name: String?) {
         statusItem.title = name.map { "Connected: \($0)" } ?? "Waiting for DualSense…"
+    }
+
+    func setBattery(_ line: String?) {
+        if let line = line {
+            batteryItem.title = line
+            batteryItem.isHidden = false
+        } else {
+            batteryItem.title = "Battery: —"
+            batteryItem.isHidden = true
+        }
     }
 
     func setRecording(_ on: Bool) {
@@ -1018,6 +1621,14 @@ claudeStateWatcher.start()
 // Adaptive-trigger effect over IOHID (USB only). Created once at boot;
 // each attach() reacquires + re-applies the weapon-mode profile.
 watcher.trigger = DualSenseTriggerEffect()
+
+// Keyboard sync: if the user types Option+` themselves (e.g. when the
+// controller is asleep), keep our state in phase with OpenWhispr.
+let kbSync = KeyboardSyncWatcher()
+kbSync.onExternalToggle = {
+    watcher.handleExternalToggle()
+}
+kbSync.start()
 
 if !checkAccessibility(prompt: true) {
     print("[!] Accessibility permission NOT granted yet.")
