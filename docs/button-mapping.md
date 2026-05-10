@@ -1,58 +1,72 @@
 # Button Mapping
 
-DualSense 手柄当前按键分配清单。以 `Sources/VibeController/main.swift` 中的实现为准。
+Current DualSense button assignments. The implementation in `Sources/VibeController/main.swift` is the source of truth.
 
-## 已映射
+## Mapped buttons
 
-| 按键 | GC API | 功能 | 备注 |
+| Button | GC API | Action | Notes |
 |---|---|---|---|
-| R2 (右扳机, 模拟) | `rightTrigger` | 切换 OpenWhispr 录音 (`Option+\``) | 阈值 0.6 触发 / 0.4 释放；USB 下开启自适应扳机 weapon 模式；**L2 按住启动时 → 录音 paste 强制落到 Ghostty** |
-| L2 (左扳机) | `leftTrigger` | 修饰键 / "Fn" | 按住时改变其它键含义 |
-| R1 | `rightShoulder` | `Cmd+Shift+→` | Ghostty 下一个标签 (匹配用户 config) |
-| L1 | `leftShoulder` | `Cmd+Shift+←` | Ghostty 上一个标签 |
+| R2 (right trigger, analog) | `rightTrigger` | Toggle OpenWhispr recording (`Option+\``) | Engages at 0.6, releases at 0.4 (hysteresis); adaptive trigger weapon mode over USB; **if L2 is held when R2 fires, the resulting paste is routed to Ghostty** |
+| L2 (left trigger) | `leftTrigger` | Modifier / "Fn" | Held to change the meaning of other buttons |
+| R1 | `rightShoulder` | `Cmd+Shift+→` | Ghostty next tab (matches the author's Ghostty config) |
+| L1 | `leftShoulder` | `Cmd+Shift+←` | Ghostty previous tab |
 | ✕ (Cross) | `buttonA` | `Return` | |
-| ○ (Circle) | `buttonB` | `Esc` (默认) / `Delete` 长按 (L2 按住时) | |
-| □ (Square) | `buttonX` | 鼠标左键 | 配合右摇杆当鼠标 |
-| △ (Triangle) | `buttonY` | 短按: 聚焦 Ghostty + `claude` 回车 / 长按 (>0.55s): `claude --resume` 回车 | 通过 `NSWorkspace.didActivateApplicationNotification` 等待真正前台后再敲键, 2s 兜底 |
-| D-Pad ↑ | `dpad.up` | 方向键 ↑ (默认) / `Cmd+T` 新建 Ghostty 标签 (L2 按住时) | 默认仿 macOS 长按重复 |
-| D-Pad ↓ | `dpad.down` | 方向键 ↓ (默认) / 输入 `/new` + 回车 (L2 按住时) | |
-| D-Pad ← | `dpad.left` | 方向键 ← | |
-| D-Pad → | `dpad.right` | 方向键 → (默认) / `Cmd+D` 右分屏 (L2 按住时) | |
-| 左摇杆 (模拟) | `leftThumbstick` | 鼠标光标移动 | |
-| 右摇杆 (模拟) | `rightThumbstick` | 垂直滚轮 | |
-| PS (Home) | `buttonHome` | `Cmd+Tab` | macOS 可能拦截；部分手柄不暴露 |
+| ○ (Circle) | `buttonB` | `Esc` (default) / `Delete` while L2 is held | |
+| □ (Square) | `buttonX` | Mouse left click | Pairs with the right stick used as scroll wheel and the left stick used as cursor |
+| △ (Triangle) | `buttonY` | Short press: focus Ghostty + type `claude\n`. Long press (>0.55s): focus Ghostty + type `claude --resume\n` | Waits for `NSWorkspace.didActivateApplicationNotification` before typing, with a 2s fallback |
+| D-Pad ↑ | `dpad.up` | Arrow ↑ (default) / `Cmd+T` new Ghostty tab while L2 held | Long-press auto-repeat mimics macOS |
+| D-Pad ↓ | `dpad.down` | Arrow ↓ (default) / type `/new\n` while L2 held | |
+| D-Pad ← | `dpad.left` | Arrow ← | |
+| D-Pad → | `dpad.right` | Arrow → (default) / `Cmd+D` split right while L2 held | |
+| Left stick (analog) | `leftThumbstick` | Mouse cursor movement | |
+| Right stick (analog) | `rightThumbstick` | Vertical scroll wheel | |
+| PS (Home) | `buttonHome` | `Cmd+Tab` | macOS may intercept; some controllers do not expose this button |
 
-## 未映射 (可用键位)
+## Unmapped (available)
 
-| 按键 | GC API | 状态 |
+| Button | GC API | Status |
 |---|---|---|
-| L3 (左摇杆按下) | `leftThumbstickButton` | 未使用 |
-| R3 (右摇杆按下) | `rightThumbstickButton` | 未使用 |
-| Options | `buttonOptions` | 未使用 |
-| Create (左上, 旧 Share) | `buttonMenu` | 未使用 |
-| 触摸板 (模拟 X/Y) | touchpad | 故意禁用 — 电容噪声漂移严重，已用右摇杆+□ 替代 |
-| 触摸板按下 | touchpadButton | 故意禁用 (同上) |
-| 静音键 (麦下方) | — | 硬件级，GameController 不暴露 |
+| L3 (left stick click) | `leftThumbstickButton` | Unused |
+| R3 (right stick click) | `rightThumbstickButton` | Unused |
+| Options | `buttonOptions` | Unused |
+| Create (top-left, formerly Share) | `buttonMenu` | Unused |
+| Touchpad (analog X/Y) | touchpad | **Intentionally disabled** — capacitive drift was unworkable; the right stick + Square covers the same role |
+| Touchpad click | touchpadButton | Intentionally disabled (same reason) |
+| Mute key (below the mic) | — | Hardware-level, not exposed by GameController |
 
-## 反向参考: 常用动作 → 按键
+## Reverse reference: common actions → buttons
 
-- 打开/关闭语音输入 → R2
-- 回车 / 关闭 → ✕ / ○
-- 方向键导航 → D-Pad (长按重复)
-- 删除字符 → L2 + ○ (长按重复)
-- 切标签 → L1 / R1
-- 鼠标 → 左摇杆移动 + □ 左键
-- 滚动 → 右摇杆
-- Cmd+Tab 切应用 → PS
-- 启动/聚焦 Ghostty + 跑 `claude` → △ 短按
-- 启动 Ghostty + `claude --resume` → △ 长按
-- 录音直送 Claude (语音输入到 Ghostty) → L2 + R2
-- Ghostty 新建标签 → L2 + ↑ (Cmd+T)
-- Ghostty 右分屏 → L2 + → (Cmd+D)
+- Start/stop dictation → R2
+- Enter / Escape → ✕ / ○
+- Arrow nav (with auto-repeat) → D-Pad
+- Delete char (with auto-repeat) → L2 + ○
+- Switch tab → L1 / R1
+- Mouse → left stick to move + □ to click
+- Scroll → right stick
+- Cmd+Tab between apps → PS
+- Launch/focus Ghostty and run `claude` → △ short press
+- Launch Ghostty and run `claude --resume` → △ long press
+- Dictate directly into Claude (force paste to Ghostty) → L2 + R2
+- New Ghostty tab → L2 + ↑ (Cmd+T)
+- Split Ghostty right → L2 + → (Cmd+D)
 - Claude `/new` → L2 + ↓
 
-## 已知不一致
+## Configuration
 
-`README.md` 第 13 行 feature checklist 仍写: "Touchpad swipes → Enter (right) / Esc (left)"。
-实际 `main.swift:1359-1360` 已注释禁用触摸板, `TouchpadInput` 类存在但未被 attach。
-README 该条需要更新或删除。
+The knobs you most likely want to tweak. All live in `Sources/VibeController/main.swift`.
+
+```swift
+let TRIGGER_HIGH: Float = 0.6     // R2 press threshold
+let TRIGGER_LOW:  Float = 0.4     // R2 release threshold (hysteresis)
+let kVK_ANSI_Grave: CGKeyCode = 0x32   // ` key — combine with .flags to remap
+```
+
+Other tunables, by location:
+
+- Light bar color and breathing curve → `BreathingLight`
+- Haptic patterns and intensity → `HapticBumper.bump(...)` and `HapticBumper.playRecording*`
+- Triangle long-press threshold → `TrianglePress` (0.55s)
+- Adaptive trigger feel → `DualSenseTriggerEffect.setWeaponMode(...)` (start/end positions, strength)
+- Stick-to-cursor sensitivity → `StickMouseMover`
+- Stick-to-scroll sensitivity → `StickScroller`
+- D-Pad auto-repeat timing → `DPadAutoRepeat`
