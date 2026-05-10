@@ -26,6 +26,8 @@ let kVK_LeftArrow:         CGKeyCode = 0x7B
 let kVK_RightArrow:        CGKeyCode = 0x7C
 let kVK_ANSI_LeftBracket:  CGKeyCode = 0x21
 let kVK_ANSI_RightBracket: CGKeyCode = 0x1E
+let kVK_ANSI_T:            CGKeyCode = 0x11
+let kVK_ANSI_D:            CGKeyCode = 0x02
 let kVK_Delete:            CGKeyCode = 0x33   // Backspace ("Delete" on Mac keyboards)
 
 /// L2 acts as a controller-side "Fn" modifier. When held, other buttons can
@@ -278,6 +280,99 @@ func tapOptionBacktick() {
     }
 }
 
+let ghosttyBundleID = "com.mitchellh.ghostty"
+
+/// Bring Ghostty to the front and call `then` once it is actually frontmost.
+/// Subscribes to `didActivateApplicationNotification` so we don't fire keystrokes
+/// before the app is ready to receive them. Falls back to a 2s timeout in case
+/// the notification never arrives (e.g. activation failed silently).
+func activateGhostty(then: @escaping () -> Void) {
+    let workspace = NSWorkspace.shared
+    if workspace.frontmostApplication?.bundleIdentifier == ghosttyBundleID {
+        then()
+        return
+    }
+
+    var fired = false
+    var observer: NSObjectProtocol?
+    let fire: () -> Void = {
+        if fired { return }
+        fired = true
+        if let o = observer {
+            workspace.notificationCenter.removeObserver(o)
+        }
+        // Tiny extra beat for the shell prompt to render after focus arrives.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: then)
+    }
+
+    observer = workspace.notificationCenter.addObserver(
+        forName: NSWorkspace.didActivateApplicationNotification,
+        object: nil,
+        queue: .main
+    ) { notification in
+        let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+            as? NSRunningApplication
+        if app?.bundleIdentifier == ghosttyBundleID { fire() }
+    }
+
+    // Cold-start timeout. Warm activation usually returns within ~150ms.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { fire() }
+
+    let task = Process()
+    task.launchPath = "/usr/bin/open"
+    task.arguments = ["-a", "Ghostty"]
+    do {
+        try task.run()
+    } catch {
+        print("[ghostty] failed to activate: \(error)")
+        fire()
+    }
+}
+
+/// △ action: focus Ghostty, then start `claude` (optionally `--resume`).
+func launchClaudeInGhostty(resume: Bool = false) {
+    print("[△] launchClaudeInGhostty(resume: \(resume))")
+    activateGhostty {
+        let cmd = resume ? "claude --resume" : "claude"
+        print("[△] typing: \(cmd)")
+        typeString(cmd)
+        tapKey(kVK_Return)
+    }
+}
+
+/// Long-press detector for △: short press → `claude`, long press → `claude --resume`.
+final class TrianglePress {
+    private let threshold: TimeInterval = 0.55
+    private var timer: DispatchSourceTimer?
+    private var fired = false
+    private var armed = false
+
+    func handle(pressed: Bool) {
+        if pressed {
+            armed = true
+            fired = false
+            let t = DispatchSource.makeTimerSource(queue: .main)
+            t.schedule(deadline: .now() + threshold)
+            t.setEventHandler { [weak self] in
+                guard let self = self, self.armed else { return }
+                self.fired = true
+                launchClaudeInGhostty(resume: true)
+            }
+            t.resume()
+            timer = t
+        } else {
+            timer?.cancel()
+            timer = nil
+            if armed && !fired {
+                launchClaudeInGhostty(resume: false)
+            }
+            armed = false
+        }
+    }
+}
+
+let trianglePress = TrianglePress()
+
 /// Synthesize a string of characters via per-character Unicode keyboard events.
 /// Works for ASCII / ANSI / extended characters without needing per-character
 /// virtual-keycode lookup. Note: the receiving app must accept text input (TUI
@@ -289,6 +384,12 @@ func typeString(_ string: String) {
             let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
             let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
         else { continue }
+        // Explicitly clear modifier flags. Without this, a recently-posted
+        // event with `.maskCommand` (e.g. our own Cmd+T from L2+↑) leaks its
+        // flag state into subsequent synthetic events, causing characters like
+        // 'd' in "claude" to be interpreted as Cmd+D (split right in Ghostty).
+        down.flags = []
+        up.flags = []
         down.keyboardSetUnicodeString(stringLength: 1, unicodeString: &u)
         up.keyboardSetUnicodeString(stringLength: 1, unicodeString: &u)
         down.post(tap: .cgSessionEventTap)
@@ -958,16 +1059,26 @@ final class DPadAutoRepeat {
     private let repeatInterval: TimeInterval = 0.045
 
     func attach(_ dpad: GCControllerDirectionPad) {
-        bind(dpad.up,    key: kVK_UpArrow)
-        bind(dpad.down,  key: kVK_DownArrow)
+        // L2 held → one-shot Ghostty actions instead of arrow auto-repeat.
+        bind(dpad.up,    key: kVK_UpArrow,
+             l2Override: { print("[L2+↑] Cmd+T new tab"); tapKey(kVK_ANSI_T, flags: .maskCommand) })
+        bind(dpad.down,  key: kVK_DownArrow,
+             l2Override: { print("[L2+↓] /new"); typeString("/new"); tapKey(kVK_Return) })
         bind(dpad.left,  key: kVK_LeftArrow)
-        bind(dpad.right, key: kVK_RightArrow)
+        bind(dpad.right, key: kVK_RightArrow,
+             l2Override: { print("[L2+→] Cmd+D split right"); tapKey(kVK_ANSI_D, flags: .maskCommand) })
     }
 
-    private func bind(_ button: GCControllerButtonInput, key: CGKeyCode) {
+    private func bind(_ button: GCControllerButtonInput,
+                      key: CGKeyCode,
+                      l2Override: (() -> Void)? = nil) {
         button.pressedChangedHandler = { [weak self] _, _, pressed in
             guard let self = self else { return }
             if pressed {
+                if l2ModifierHeld, let override = l2Override {
+                    override()
+                    return
+                }
                 self.startRepeat(for: key)
             } else if self.currentKey == key {
                 self.stopRepeat()
@@ -1196,6 +1307,9 @@ final class TriggerWatcher {
     private var pressed = false
     private(set) var recording = false
     private var savedInputDevice: AudioDeviceID?
+    /// Captured at recording start: was L2 held? If yes, paste should land in
+    /// Ghostty regardless of where focus was at trigger time.
+    private var targetGhostty = false
 
     func handle(value: Float) {
         if !pressed && value >= TRIGGER_HIGH {
@@ -1203,6 +1317,7 @@ final class TriggerWatcher {
             recording.toggle()
             statusUpdate?(recording)
             if recording {
+                targetGhostty = l2ModifierHeld
                 claudeState?.suspend()
                 bumper?.playRecordingStart()
                 breathing?.start()
@@ -1222,24 +1337,31 @@ final class TriggerWatcher {
     }
 
     private func startRecording() {
-        // Start mic-level monitor so the light bar reacts to voice volume.
-        // Slight delay so the CoreAudio switch (if any) settles first.
-        if Preferences.useDualSenseMic,
-           let ds = AudioInputSwitcher.findInputDevice(matching: "DualSense") {
-            savedInputDevice = AudioInputSwitcher.defaultInputID
-            AudioInputSwitcher.setDefaultInput(ds)
-            let dsName = AudioInputSwitcher.name(of: ds) ?? "DualSense"
-            print("[mic] switched default input -> \(dsName)")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                self?.startMicMonitor()
-                self?.fireStartHotkey()
+        let begin: () -> Void = { [weak self] in
+            guard let self = self else { return }
+            if Preferences.useDualSenseMic,
+               let ds = AudioInputSwitcher.findInputDevice(matching: "DualSense") {
+                self.savedInputDevice = AudioInputSwitcher.defaultInputID
+                AudioInputSwitcher.setDefaultInput(ds)
+                let dsName = AudioInputSwitcher.name(of: ds) ?? "DualSense"
+                print("[mic] switched default input -> \(dsName)")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                    self?.startMicMonitor()
+                    self?.fireStartHotkey()
+                }
+            } else {
+                if Preferences.useDualSenseMic {
+                    print("[mic] DualSense audio device not found; using current default")
+                }
+                self.startMicMonitor()
+                self.fireStartHotkey()
             }
+        }
+        if targetGhostty {
+            print("[R2] L2-held → routing recording paste to Ghostty")
+            activateGhostty(then: begin)
         } else {
-            if Preferences.useDualSenseMic {
-                print("[mic] DualSense audio device not found; using current default")
-            }
-            startMicMonitor()
-            fireStartHotkey()
+            begin()
         }
     }
 
@@ -1259,19 +1381,29 @@ final class TriggerWatcher {
     }
 
     private func stopRecording() {
-        print("[R2] press -> recording=false")
-        tapOptionBacktick()
-        micMonitor?.stop()
-        breathing?.currentMicLevel = 0
-        if let saved = savedInputDevice {
-            // Give OpenWhispr a beat to release its in-flight capture stream
-            // before we yank the default out from under it.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                AudioInputSwitcher.setDefaultInput(saved)
-                let restored = AudioInputSwitcher.name(of: saved) ?? "id=\(saved)"
-                print("[mic] restored default input -> \(restored)")
+        let finish: () -> Void = { [weak self] in
+            guard let self = self else { return }
+            print("[R2] press -> recording=false")
+            tapOptionBacktick()
+            self.micMonitor?.stop()
+            self.breathing?.currentMicLevel = 0
+            if let saved = self.savedInputDevice {
+                // Give OpenWhispr a beat to release its in-flight capture stream
+                // before we yank the default out from under it.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    AudioInputSwitcher.setDefaultInput(saved)
+                    let restored = AudioInputSwitcher.name(of: saved) ?? "id=\(saved)"
+                    print("[mic] restored default input -> \(restored)")
+                }
+                self.savedInputDevice = nil
             }
-            savedInputDevice = nil
+            self.targetGhostty = false
+        }
+        if targetGhostty {
+            // Re-assert focus before OpenWhispr's paste fires.
+            activateGhostty(then: finish)
+        } else {
+            finish()
         }
     }
 
@@ -1415,28 +1547,24 @@ func attach(_ controller: GCController) {
         )
         event?.post(tap: .cgSessionEventTap)
     }
+    // △ → short press = `claude`; long press (>0.55s) = `claude --resume`.
     gamepad.buttonY.pressedChangedHandler = { _, _, pressed in
-        if pressed {
-            typeString("/compact")
-            tapKey(kVK_Return)
-        }
-    }
-    // L3 (left thumbstick click) → /clear, taking over what □ used to do.
-    gamepad.leftThumbstickButton?.pressedChangedHandler = { _, _, pressed in
-        if pressed {
-            typeString("/clear")
-            tapKey(kVK_Return)
-        }
+        trianglePress.handle(pressed: pressed)
     }
     let dpadRepeat = DPadAutoRepeat()
     dpadRepeat.attach(gamepad.dpad)
     watcher.dpadRepeat = dpadRepeat
-    // Shoulders → Cmd+[ / Cmd+] (Ghostty / Claude Code tab switching).
+    // Shoulders → Cmd+Shift+← / Cmd+Shift+→ (Ghostty tab switching, matches
+    // user's ~/.config/ghostty/config which remaps tabs off of Cmd+[/]).
     gamepad.leftShoulder.pressedChangedHandler = { _, _, pressed in
-        if pressed { tapKey(kVK_ANSI_LeftBracket, flags: .maskCommand) }
+        if pressed {
+            tapKey(kVK_LeftArrow, flags: [.maskCommand, .maskShift])
+        }
     }
     gamepad.rightShoulder.pressedChangedHandler = { _, _, pressed in
-        if pressed { tapKey(kVK_ANSI_RightBracket, flags: .maskCommand) }
+        if pressed {
+            tapKey(kVK_RightArrow, flags: [.maskCommand, .maskShift])
+        }
     }
     // PS / home button → Cmd+Tab. Only present on some controllers; macOS may
     // also intercept the Home button entirely depending on system policy.
