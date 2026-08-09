@@ -51,6 +51,7 @@ Use a PS5 DualSense controller as a push-to-talk voice input device on macOS. Pu
 ## Documentation
 
 - [Button mapping & configuration](docs/button-mapping.md)
+- [Pitfalls](docs/pitfalls.md) — permissions, duplicate instances, cursor stutter, GameController naming traps
 - [How it works](docs/how-it-works.md)
 - [Install as LaunchAgent](docs/install.md) — requirements, autostart, Accessibility, smoke test
 - [Microphone strategy on macOS](docs/microphone-on-macos.md)

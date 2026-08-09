@@ -8,7 +8,7 @@
 - [OpenWhispr](https://github.com/openwhispr/openwhispr) installed and configured with:
   - Dictation hotkey set to `Option+\`` (the backtick key under Esc)
   - Activation mode: `tap` (press once to start, again to stop)
-- **Accessibility permission** granted to the installed app (`~/Applications/VibeController.app` after running `launchagent/install.sh`)
+- **Accessibility permission** (and, for keyboard sync, **Input Monitoring**) granted to the installed app (`~/Applications/VibeController.app` after running `launchagent/install.sh`) — re-granted after every reinstall, see below
 
 ## Install
 
@@ -20,12 +20,24 @@ This builds release, packages a `.app` bundle (`Info.plist` + custom icon), copi
 
 Logs go to `~/Library/Logs/vibe-controller.{log,err}`.
 
-## Granting Accessibility permission
+## Granting permissions
 
-After installing, **System Settings → Privacy & Security → Accessibility** must allow `VibeController`. Click `+`, navigate to `~/Applications`, and pick `VibeController.app`. Once granted:
+Two separate permissions are needed, in **System Settings → Privacy & Security**:
+
+| Pane | Needed for | Missing it looks like |
+|---|---|---|
+| **Accessibility** | Posting key and mouse events — i.e. every binding | `[!] Accessibility permission NOT granted yet.` in the log |
+| **Input Monitoring** | Syncing state when *you* type `Option+\``, and dismissing the button map with a keypress | `[sync] CGEventTap creation failed` in the log |
+
+Click `+`, press `Cmd+Shift+G`, enter `~/Applications`, and pick `VibeController.app`. The Finder sidebar's "Applications" is `/Applications`, which is not where this installs.
+
+**Every reinstall revokes Accessibility.** `install.sh` re-signs the bundle ad-hoc and that trust is keyed on `(path, cdhash)`; the path is stable but the hash is not, so the existing entry silently stops counting. Toggle it off and back on — a checked box is not evidence it works. See [pitfalls](pitfalls.md).
+
+**Do not run `kickstart` afterwards.** Changing a permission makes macOS kill the app, and KeepAlive restarts it already holding the new permission. A kickstart on top of that leaves an orphaned second instance, and two instances mean every button press fires twice. Confirm there is exactly one:
 
 ```bash
-launchctl kickstart -k gui/$UID/com.sunky.vibe-controller
+pgrep -fl "Applications/VibeController.app"
+launchctl list com.sunky.vibe-controller | grep PID
 ```
 
 ## Manual control
