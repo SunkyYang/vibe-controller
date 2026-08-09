@@ -1119,17 +1119,32 @@ final class DPadAutoRepeat {
 
 // MARK: - Right stick → mouse cursor
 
-/// Drives the cursor with the right thumbstick. ~60 fps timer, gain
-/// follows a square curve past the dead zone so weak pushes give precise
-/// micro-motion and full-deflection ramps to a fast traversal speed.
-/// While `mouseHeld` is true (set by the X/□ button handler), motion is
-/// emitted as leftMouseDragged so OS drag tracking works.
+/// Drives the cursor with the left thumbstick. Gain follows a square curve
+/// past the dead zone so weak pushes give precise micro-motion and full
+/// deflection ramps to a fast traversal speed. While `mouseHeld` is true
+/// (set by the touchpad click handler), motion is emitted as
+/// leftMouseDragged so OS drag tracking works.
+///
+/// Motion is integrated over real elapsed time rather than counted per
+/// tick, and the tick rate is ~120Hz. A fixed 16ms tick is ~62.5Hz, which
+/// on a 60Hz display beats against the refresh rate: some refreshes get
+/// two position updates and some get none, roughly 2.5 times a second.
+/// That reads as stutter on an external 60Hz panel while looking fine on
+/// the 120Hz built-in display. Ticking faster than any attached display
+/// and scaling by dt means every refresh picks up a fresh, correctly
+/// scaled position whatever the refresh rate.
 final class StickMouseMover {
     private var timer: DispatchSourceTimer?
     private var currentX: Float = 0
     private var currentY: Float = 0
+    private var lastTick: DispatchTime?
     private let deadZone: Float = 0.15
-    private let maxStep: CGFloat = 60   // pixels per tick at full deflection (60 fps)
+    /// Pixels per second at full deflection. Matches the old feel: the
+    /// previous code moved 60px per tick on a 60fps timer.
+    private let maxSpeed: CGFloat = 3600
+    /// Ignore absurd gaps (app suspended, display sleep) so the cursor never
+    /// teleports on the first tick after a stall.
+    private let maxDelta: CFTimeInterval = 0.05
     var mouseHeld: Bool = false
 
     func attach(_ stick: GCControllerDirectionPad) {
@@ -1142,7 +1157,7 @@ final class StickMouseMover {
     func start() {
         stop()
         let t = DispatchSource.makeTimerSource(queue: .main)
-        t.schedule(deadline: .now(), repeating: .milliseconds(16))   // ~60 fps
+        t.schedule(deadline: .now(), repeating: .milliseconds(8), leeway: .milliseconds(1))
         t.setEventHandler { [weak self] in self?.tick() }
         t.resume()
         timer = t
@@ -1153,18 +1168,33 @@ final class StickMouseMover {
         timer = nil
         currentX = 0
         currentY = 0
+        lastTick = nil
     }
 
     private func tick() {
+        let now = DispatchTime.now()
+        let previous = lastTick
+        lastTick = now
+
         let x = currentX
         let y = currentY
         let mag = sqrt(x * x + y * y)
+        // Resting: keep the clock fresh so the first tick of the next push
+        // integrates one frame, not however long the stick sat centred.
         guard mag > deadZone else { return }
+        guard let previous = previous else { return }
+
+        let dt = min(
+            maxDelta,
+            CFTimeInterval(now.uptimeNanoseconds &- previous.uptimeNanoseconds) / 1_000_000_000
+        )
+        guard dt > 0 else { return }
+
         let normalized = (mag - deadZone) / (1 - deadZone)
         let curved = normalized * normalized
-        let speed = CGFloat(curved) * maxStep
-        let dx = CGFloat(x / mag) * speed
-        let dy = CGFloat(-y / mag) * speed                 // y up = screen y up
+        let distance = CGFloat(curved) * maxSpeed * CGFloat(dt)
+        let dx = CGFloat(x / mag) * distance
+        let dy = CGFloat(-y / mag) * distance              // y up = screen y up
         moveMouse(dx: dx, dy: dy)
     }
 
@@ -1659,13 +1689,25 @@ func attach(_ controller: GCController) {
     // Any button press dismisses the button map. Sticks are excluded (they
     // drift, and drift would close it instantly); L3 is excluded because its
     // own handler owns the toggle.
-    gamepad.valueChangedHandler = { pad, element in
-        guard CheatSheetOverlay.shared.isVisible else { return }
-        if element === pad.leftThumbstick || element === pad.rightThumbstick { return }
-        if element === pad.leftThumbstickButton { return }
-        if let button = element as? GCControllerButtonInput, !button.isPressed { return }
-        DispatchQueue.main.async { CheatSheetOverlay.shared.hide() }
+    //
+    // Installed only while the map is on screen — see `dismissHookInstaller`.
+    CheatSheetOverlay.shared.dismissHookInstaller = { [weak gamepad] install in
+        guard let gamepad = gamepad else { return }
+        guard install else {
+            gamepad.valueChangedHandler = nil
+            return
+        }
+        gamepad.valueChangedHandler = { pad, element in
+            if element === pad.leftThumbstick || element === pad.rightThumbstick { return }
+            if element === pad.leftThumbstickButton { return }
+            if let button = element as? GCControllerButtonInput, !button.isPressed { return }
+            // Async so the handler is not torn down inside its own call.
+            DispatchQueue.main.async { CheatSheetOverlay.shared.hide() }
+        }
     }
+    // Covers connecting a controller while the map is already up (opened from
+    // the status bar menu).
+    CheatSheetOverlay.shared.dismissHookInstaller?(CheatSheetOverlay.shared.isVisible)
 
     // Left stick → mouse cursor (paired with □ as left button).
     let mouseMover = StickMouseMover()
@@ -1708,6 +1750,7 @@ func detach(_ controller: GCController) {
         watcher.dpadRepeat = nil
         watcher.battery = nil
         watcher.controller = nil
+        CheatSheetOverlay.shared.dismissHookInstaller = nil
         statusBar.setBattery(nil)
     }
 }

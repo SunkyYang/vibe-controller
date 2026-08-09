@@ -18,6 +18,16 @@ final class CheatSheetOverlay {
     private var panel: NSPanel?
     private var keyMonitor: Any?
 
+    /// Installs (true) or removes (false) the controller-side "any button
+    /// dismisses" handler. Set by `attach()`, cleared by `detach()`.
+    ///
+    /// This is a hook rather than a flag the handler checks because the
+    /// handler sits on the input hot path: a gamepad reports a few hundred
+    /// times a second, all on the main queue, and the cursor timer shares
+    /// that queue. Nothing at all should be installed while the map is
+    /// hidden, which is all of the time.
+    var dismissHookInstaller: ((Bool) -> Void)?
+
     var isVisible: Bool { panel?.isVisible ?? false }
 
     func toggle() {
@@ -47,10 +57,12 @@ final class CheatSheetOverlay {
         }
 
         installKeyMonitor()
+        dismissHookInstaller?(true)
     }
 
     func hide() {
         removeKeyMonitor()
+        dismissHookInstaller?(false)
         guard let panel = panel, panel.isVisible else { return }
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.12
