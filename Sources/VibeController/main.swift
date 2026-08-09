@@ -28,6 +28,8 @@ let kVK_ANSI_LeftBracket:  CGKeyCode = 0x21
 let kVK_ANSI_RightBracket: CGKeyCode = 0x1E
 let kVK_ANSI_T:            CGKeyCode = 0x11
 let kVK_ANSI_D:            CGKeyCode = 0x02
+let kVK_ANSI_Z:            CGKeyCode = 0x06
+let kVK_ANSI_4:            CGKeyCode = 0x15
 let kVK_Delete:            CGKeyCode = 0x33   // Backspace ("Delete" on Mac keyboards)
 
 /// L2 acts as a controller-side "Fn" modifier. When held, other buttons can
@@ -69,6 +71,8 @@ final class KeyboardSyncWatcher {
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     var onExternalToggle: (() -> Void)?
+    /// Fires on every keyDown, whatever the key. Used to dismiss the button map.
+    var onAnyKeyDown: (() -> Void)?
 
     func start() {
         let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
@@ -78,8 +82,9 @@ final class KeyboardSyncWatcher {
             if type == .keyDown {
                 let kc = event.getIntegerValueField(.keyboardEventKeycode)
                 let flags = event.flags
+                let watcher = Unmanaged<KeyboardSyncWatcher>.fromOpaque(info).takeUnretainedValue()
+                DispatchQueue.main.async { watcher.onAnyKeyDown?() }
                 if kc == 0x32 && flags.contains(.maskAlternate) {
-                    let watcher = Unmanaged<KeyboardSyncWatcher>.fromOpaque(info).takeUnretainedValue()
                     DispatchQueue.main.async {
                         if !selfPostedBacktickInFlight {
                             watcher.onExternalToggle?()
@@ -1474,6 +1479,38 @@ func applyClaudeStateLight(_ state: String) {
     }
 }
 
+/// Physical confirmation that the L2 "Fn" layer is engaged: a crisp tick plus
+/// an amber light bar. Without it there is no way to tell a half-pulled L2
+/// from a held one, and the combo silently comes out as the base binding.
+///
+/// Skipped while recording — the voice-reactive bar repaints at 30fps and
+/// would fight us for the light anyway.
+func setModifierLayerFeedback(_ engaged: Bool) {
+    guard !watcher.recording else { return }
+    if engaged {
+        watcher.bumper?.bump(intensity: 0.35, sharpness: 0.9, duration: 0.03)
+        watcher.controller?.light?.color = GCColor(red: 0.85, green: 0.35, blue: 0.0)
+    } else {
+        applyClaudeStateLight(watcher.claudeState?.currentState ?? "idle")
+    }
+}
+
+func postMouseButton(_ button: CGMouseButton, down: Bool) {
+    let type: CGEventType
+    switch button {
+    case .right: type = down ? .rightMouseDown : .rightMouseUp
+    default:     type = down ? .leftMouseDown : .leftMouseUp
+    }
+    let cur = CGEvent(source: nil)?.location ?? .zero
+    let event = CGEvent(
+        mouseEventSource: nil,
+        mouseType: type,
+        mouseCursorPosition: cur,
+        mouseButton: button
+    )
+    event?.post(tap: .cgSessionEventTap)
+}
+
 // MARK: - Connection
 
 func attach(_ controller: GCController) {
@@ -1509,9 +1546,11 @@ func attach(_ controller: GCController) {
     }
 
     // L2 as a controller-side modifier ("Fn" on the gamepad). Holding it
-    // changes the meaning of other buttons (currently L2+○ = Delete).
+    // changes the meaning of other buttons. Confirmed by tick + amber bar so
+    // the layer is never silently un-engaged.
     gamepad.leftTrigger.pressedChangedHandler = { _, _, pressed in
         l2ModifierHeld = pressed
+        setModifierLayerFeedback(pressed)
     }
 
     // Button -> keyboard mappings (PS5 face buttons + D-Pad).
@@ -1521,7 +1560,10 @@ func attach(_ controller: GCController) {
     //   buttonX = Square (□)
     //   buttonY = Triangle (△)
     gamepad.buttonA.pressedChangedHandler = { _, _, pressed in
-        if pressed { tapKey(kVK_Return) }
+        if pressed {
+            tapKey(l2ModifierHeld ? kVK_ANSI_Z : kVK_Return,
+                   flags: l2ModifierHeld ? .maskCommand : [])
+        }
     }
     gamepad.buttonB.pressedChangedHandler = { _, _, pressed in
         if pressed {
@@ -1535,17 +1577,13 @@ func attach(_ controller: GCController) {
             stopDeleteRepeat()
         }
     }
-    // □ acts as the left mouse button (paired with the right stick → cursor).
+    // □ is the right mouse button. Left click moved to the touchpad click
+    // below, which is the biggest, most obvious "click here" surface on the
+    // controller — and unlike the touchpad's X/Y, it is a plain digital
+    // button, so the capacitive drift that got the touchpad disabled does
+    // not apply to it.
     gamepad.buttonX.pressedChangedHandler = { _, _, pressed in
-        watcher.stickMouse?.mouseHeld = pressed
-        let cur = CGEvent(source: nil)?.location ?? .zero
-        let event = CGEvent(
-            mouseEventSource: nil,
-            mouseType: pressed ? .leftMouseDown : .leftMouseUp,
-            mouseCursorPosition: cur,
-            mouseButton: .left
-        )
-        event?.post(tap: .cgSessionEventTap)
+        postMouseButton(.right, down: pressed)
     }
     // △ → short press = `claude`; long press (>0.55s) = `claude --resume`.
     gamepad.buttonY.pressedChangedHandler = { _, _, pressed in
@@ -1566,10 +1604,67 @@ func attach(_ controller: GCController) {
             tapKey(kVK_RightArrow, flags: [.maskCommand, .maskShift])
         }
     }
-    // PS / home button → Cmd+Tab. Only present on some controllers; macOS may
-    // also intercept the Home button entirely depending on system policy.
+    // L3 (click the left stick) → the button map HUD. Chosen because it is the
+    // one control you can find without knowing the mapping, and because a stray
+    // click only flashes an overlay that ignores mouse events anyway.
+    gamepad.leftThumbstickButton?.pressedChangedHandler = { _, _, pressed in
+        guard pressed else { return }
+        DispatchQueue.main.async {
+            CheatSheetOverlay.shared.toggle()
+        }
+        watcher.bumper?.bump(intensity: 0.5, sharpness: 0.4, duration: 0.05)
+    }
+
+    // Touchpad click → left mouse button (with drag support via mouseHeld).
+    if #available(macOS 11.3, *), let ds = gamepad as? GCDualSenseGamepad {
+        ds.touchpadButton.pressedChangedHandler = { _, _, pressed in
+            watcher.stickMouse?.mouseHeld = pressed
+            postMouseButton(.left, down: pressed)
+        }
+    } else if let dualShock = gamepad as? GCDualShockGamepad {
+        dualShock.touchpadButton.pressedChangedHandler = { _, _, pressed in
+            watcher.stickMouse?.mouseHeld = pressed
+            postMouseButton(.left, down: pressed)
+        }
+    } else {
+        print("[warn] no touchpad button on this controller; left click unmapped")
+    }
+
+    // Create (the ⊞-ish key left of the touchpad) → screenshot selection.
+    // Sony calls it "Create"; Cmd+Shift+4 is the closest macOS equivalent, so
+    // the label on the key matches what it does.
+    //
+    // Apple's naming is the reverse of what you'd guess: buttonOptions is the
+    // left-hand Create/Share key, buttonMenu is the right-hand Options key.
+    // The localizedName log below confirms it per-controller.
+    print("[buttons] buttonOptions=\(gamepad.buttonOptions?.localizedName ?? "nil")"
+          + " buttonMenu=\(gamepad.buttonMenu.localizedName ?? "nil")")
+    gamepad.buttonOptions?.pressedChangedHandler = { _, _, pressed in
+        if pressed { tapKey(kVK_ANSI_4, flags: [.maskCommand, .maskShift]) }
+    }
+    // Options (right of the touchpad) → Tab. Completion in the shell and in
+    // Claude Code was the one everyday key with nowhere to live.
+    gamepad.buttonMenu.pressedChangedHandler = { _, _, pressed in
+        if pressed { tapKey(kVK_Tab) }
+    }
+
+    // PS / home button → Mission Control (Ctrl+↑). Cmd+Tab used to live here
+    // but a tap-and-release Cmd+Tab can only bounce between the two most
+    // recent apps — it can never reach the third. Mission Control is complete
+    // in a single press. macOS may still intercept Home entirely.
     gamepad.buttonHome?.pressedChangedHandler = { _, _, pressed in
-        if pressed { tapKey(kVK_Tab, flags: .maskCommand) }
+        if pressed { tapKey(kVK_UpArrow, flags: .maskControl) }
+    }
+
+    // Any button press dismisses the button map. Sticks are excluded (they
+    // drift, and drift would close it instantly); L3 is excluded because its
+    // own handler owns the toggle.
+    gamepad.valueChangedHandler = { pad, element in
+        guard CheatSheetOverlay.shared.isVisible else { return }
+        if element === pad.leftThumbstick || element === pad.rightThumbstick { return }
+        if element === pad.leftThumbstickButton { return }
+        if let button = element as? GCControllerButtonInput, !button.isPressed { return }
+        DispatchQueue.main.async { CheatSheetOverlay.shared.hide() }
     }
 
     // Left stick → mouse cursor (paired with □ as left button).
@@ -1644,6 +1739,14 @@ final class StatusBar: NSObject {
         micToggleItem.target = self
         micToggleItem.state = Preferences.useDualSenseMic ? .on : .off
         menu.addItem(micToggleItem)
+
+        let mapItem = NSMenuItem(
+            title: "Show Button Map",
+            action: #selector(showButtonMap),
+            keyEquivalent: ""
+        )
+        mapItem.target = self
+        menu.addItem(mapItem)
         menu.addItem(NSMenuItem.separator())
 
         let quit = NSMenuItem(
@@ -1660,6 +1763,10 @@ final class StatusBar: NSObject {
         Preferences.useDualSenseMic.toggle()
         micToggleItem.state = Preferences.useDualSenseMic ? .on : .off
         print("[pref] useDualSenseMic = \(Preferences.useDualSenseMic)")
+    }
+
+    @objc private func showButtonMap() {
+        CheatSheetOverlay.shared.show()
     }
 
     @objc private func quitApp() {
@@ -1703,6 +1810,20 @@ if CommandLine.arguments.contains("--fire-once") {
     tapOptionBacktick()
     Thread.sleep(forTimeInterval: 0.1)
     exit(0)
+}
+
+// Render the button map to a PNG and exit — useful for the README and for
+// eyeballing layout changes without a controller attached.
+if let i = CommandLine.arguments.firstIndex(of: "--render-map") {
+    let out = CommandLine.arguments.count > i + 1
+        ? CommandLine.arguments[i + 1]
+        : "button-map.png"
+    if CheatSheetOverlay.renderPNG(to: out) {
+        print("[render] wrote \(out)")
+        exit(0)
+    }
+    print("[render] failed")
+    exit(1)
 }
 
 let app = NSApplication.shared
@@ -1755,6 +1876,9 @@ watcher.trigger = DualSenseTriggerEffect()
 let kbSync = KeyboardSyncWatcher()
 kbSync.onExternalToggle = {
     watcher.handleExternalToggle()
+}
+kbSync.onAnyKeyDown = {
+    CheatSheetOverlay.shared.hide()
 }
 kbSync.start()
 

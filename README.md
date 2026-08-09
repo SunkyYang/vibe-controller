@@ -17,14 +17,19 @@ Requires macOS 11.3+, Swift 5.9+, and [OpenWhispr](https://github.com/openwhispr
 
 | Button | Action |
 |---|---|
+| **L3** (click left stick) | **Pop up the on-screen button map** — press it when you forget the rest of this table |
 | R2 | Toggle dictation (OpenWhispr) |
-| L2 | Modifier — held to enable the combos below |
+| L2 | Modifier — held to enable the combos below; ticks and turns the light bar amber |
 | L1 / R1 | `Cmd+Shift+←` / `Cmd+Shift+→` (tab nav) |
 | ✕ / ○ | Enter / Esc |
 | D-Pad | Arrow keys with auto-repeat |
 | △ | Launch Ghostty + run `claude` (long press: `claude --resume`) |
+| Touchpad click / □ | Mouse left click / right click |
 | Left stick / Right stick | Mouse cursor / scroll wheel |
+| Create / Options | `Cmd+Shift+4` screenshot / `Tab` |
+| PS | Mission Control |
 | L2 + R2 | Dictate directly into Ghostty |
+| L2 + ✕ / ○ | `Cmd+Z` undo / Delete |
 | L2 + D-Pad ↑ / → / ↓ | `Cmd+T` / `Cmd+D` / type `/new` |
 
 Full table and tunable constants in [`docs/button-mapping.md`](docs/button-mapping.md).
@@ -37,6 +42,7 @@ Use a PS5 DualSense controller as a push-to-talk voice input device on macOS. Pu
 
 - R2 trigger toggles OpenWhispr dictation; light bar breathes blue while recording and reacts to your voice level
 - Face buttons, D-Pad, and shoulder buttons mapped to common keys. L2 acts as a Fn modifier for combos. Sticks act as mouse cursor + scroll wheel.
+- Click the left stick (L3) for a click-through HUD that draws the controller with every mapping labelled; any other button or keypress dismisses it. Also on the status bar menu
 - Haptic feedback on recording start/stop, with distinct patterns for different events
 - Optional [Claude Code state mirroring](docs/claude-code-integration.md) — light bar reflects what Claude is doing
 - Optional [adaptive trigger weapon mode](docs/adaptive-trigger.md) on R2 (USB only)
