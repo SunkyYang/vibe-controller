@@ -197,7 +197,7 @@ final class CheatSheetView: NSView {
                 anchor: NSPoint(x: 75, y: 18)),
         // □ sits on the far side of the cluster; keeping it above ✕ in the
         // column routes its leader over the buttons instead of through them.
-        Callout(cap: "□", action: "Mouse right click",
+        Callout(cap: "□", action: "Mouse left click + drag",
                 anchor: NSPoint(x: 41, y: 18)),
         Callout(cap: "✕", action: "Return",
                 anchor: NSPoint(x: 58, y: 1)),
@@ -417,7 +417,7 @@ final class CheatSheetView: NSView {
         NSColor(calibratedWhite: 0.26, alpha: 1).setFill(); pad.fill()
         bodyEdge.setStroke(); pad.lineWidth = 1; pad.stroke()
         centered("CLICK", in: padRect, dy: 6, size: 9.5, color: accent, weight: .bold)
-        centered("left mouse", in: padRect, dy: -7, size: 9, color: textDim, weight: .regular)
+        centered("right mouse", in: padRect, dy: -7, size: 9, color: textDim, weight: .regular)
 
         // Create / Options.
         for sign in [CGFloat(-1), 1] {

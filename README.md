@@ -24,7 +24,7 @@ Requires macOS 11.3+, Swift 5.9+, and [OpenWhispr](https://github.com/openwhispr
 | ✕ / ○ | Enter / Esc |
 | D-Pad | Arrow keys with auto-repeat |
 | △ | Launch Ghostty + run `claude` (long press: `claude --resume`) |
-| Touchpad click / □ | Mouse left click / right click |
+| □ / Touchpad click | Mouse left click (+ drag) / right click |
 | Left stick / Right stick | Mouse cursor / scroll wheel |
 | Create / Options | `Cmd+Shift+4` screenshot / `Tab` |
 | PS | Mission Control |

@@ -12,7 +12,7 @@ Current DualSense button assignments. The implementation in `Sources/VibeControl
 | L1 | `leftShoulder` | `Cmd+Shift+←` | Ghostty previous tab |
 | ✕ (Cross) | `buttonA` | `Return` (default) / `Cmd+Z` undo while L2 is held | |
 | ○ (Circle) | `buttonB` | `Esc` (default) / `Delete` while L2 is held | |
-| □ (Square) | `buttonX` | Mouse **right** click | Left click moved to the touchpad click |
+| □ (Square) | `buttonX` | Mouse **left** click (with drag via `mouseHeld`) | Under the right thumb, always reachable while the left thumb drives the cursor |
 | △ (Triangle) | `buttonY` | Short press: `Shift+Tab` (cycle Claude Code default / auto-accept / plan). Long press (>0.55s): `Ctrl+C` interrupt. **With L2 held**: short press focuses Ghostty + types `claude\n`, long press `claude --resume\n` | Mode cycle gives 1/2/3 haptic ticks and flashes the bar white/green/blue from a local counter (it cannot read the real mode; one extra press realigns it). Interrupt is a heavy thump + red flash. L2 is sampled at press time. Launch waits for `NSWorkspace.didActivateApplicationNotification` before typing, with a 2s fallback |
 | D-Pad ↑ | `dpad.up` | Arrow ↑ (default) / `Cmd+T` new Ghostty tab while L2 held | Long-press auto-repeat mimics macOS |
 | D-Pad ↓ | `dpad.down` | Arrow ↓ (default) / type `/new\n` while L2 held | |
@@ -24,7 +24,7 @@ Current DualSense button assignments. The implementation in `Sources/VibeControl
 | R3 (right stick click) | `rightThumbstickButton` | `Cmd+V` paste | Pairs with Create (screenshot, then paste into Claude); mirrors L3 on the other stick |
 | Create (left of touchpad) | `buttonOptions` | `Cmd+Shift+4` screenshot selection | Apple's naming is inverted from Sony's: `buttonOptions` is the **Create** key, `buttonMenu` is **Options**. `attach()` logs both `localizedName`s at connect so this can be verified per controller |
 | Options (right of touchpad) | `buttonMenu` | `Tab` | Shell and Claude Code completion |
-| Touchpad click | `touchpadButton` | Mouse left click (with drag via `mouseHeld`) | The capacitive X/Y drift that got the touchpad surface disabled does not affect this — the click is a plain digital button |
+| Touchpad click | `touchpadButton` | Mouse **right** click | Secondary click on the harder-to-reach centre button; the click is a plain digital button, unaffected by the surface drift that got the touchpad X/Y disabled |
 | PS (Home) | `buttonHome` | Mission Control (`Ctrl+↑`) | Was `Cmd+Tab`, but a tap-and-release `Cmd+Tab` can only bounce between the two most recent apps. macOS may intercept; some controllers do not expose this button |
 
 ## Unmapped (available)
@@ -43,7 +43,7 @@ Current DualSense button assignments. The implementation in `Sources/VibeControl
 - Delete char (with auto-repeat) → L2 + ○
 - Undo → L2 + ✕ (Cmd+Z)
 - Switch tab → L1 / R1
-- Mouse → left stick to move + touchpad click for left, □ for right
+- Mouse → left stick to move + □ for left click/drag, touchpad click for right
 - Scroll → right stick
 - Mission Control → PS
 - Screenshot selection → Create

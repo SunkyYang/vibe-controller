@@ -1039,9 +1039,8 @@ final class MicLevelMonitor {
 
 /// DualSense touchpad behavior:
 ///  - Single-finger movement → relative cursor motion (always in mouse mode)
-///  - Touchpad physically clicked → left mouse button (down on click,
-///    up on release). Click + finger still = single click; click + drag =
-///    proper drag.
+///  - Touchpad physically clicked → right mouse button (down on click,
+///    up on release). Left click + drag lives on □ instead.
 final class TouchpadInput {
     private var prevFingerX: Float = 0
     private var prevFingerY: Float = 0
@@ -1763,7 +1762,7 @@ func attach(_ controller: GCController) {
     watcher.bumper = HapticBumper(controller: controller)
     watcher.breathing = BreathingLight(controller: controller)
     // The DualSense touchpad as a mouse drifts noticeably under capacitive noise.
-    // We disable it on purpose; right stick + buttonX (□) replace it cleanly.
+    // We disable it on purpose; left stick + buttonX (□) replace it cleanly.
 
     // Adaptive trigger over IOHID. USB sends report 0x02; Bluetooth sends
     // report 0x31 with CRC32 trailer.
@@ -1814,13 +1813,14 @@ func attach(_ controller: GCController) {
             stopDeleteRepeat()
         }
     }
-    // □ is the right mouse button. Left click moved to the touchpad click
-    // below, which is the biggest, most obvious "click here" surface on the
-    // controller — and unlike the touchpad's X/Y, it is a plain digital
-    // button, so the capacitive drift that got the touchpad disabled does
-    // not apply to it.
+    // □ is the LEFT mouse button (with drag via mouseHeld). It sits under the
+    // right thumb, which rests on the face buttons while the left thumb drives
+    // the cursor on the left stick — so the primary click lives on the button
+    // that is always reachable, and the harder-to-reach touchpad click takes
+    // the secondary (right) button.
     gamepad.buttonX.pressedChangedHandler = { _, _, pressed in
-        postMouseButton(.right, down: pressed)
+        watcher.stickMouse?.mouseHeld = pressed
+        postMouseButton(.left, down: pressed)
     }
     // △ → Shift+Tab mode cycle / hold for Ctrl+C; with L2 → `claude` /
     // hold for `claude --resume`. See TrianglePress.
@@ -1858,19 +1858,18 @@ func attach(_ controller: GCController) {
         watcher.bumper?.bump(intensity: 0.5, sharpness: 0.4, duration: 0.05)
     }
 
-    // Touchpad click → left mouse button (with drag support via mouseHeld).
+    // Touchpad click → right mouse button. Secondary action on the harder-to-
+    // reach centre button; □ under the right thumb owns left click + drag.
     if #available(macOS 11.3, *), let ds = gamepad as? GCDualSenseGamepad {
         ds.touchpadButton.pressedChangedHandler = { _, _, pressed in
-            watcher.stickMouse?.mouseHeld = pressed
-            postMouseButton(.left, down: pressed)
+            postMouseButton(.right, down: pressed)
         }
     } else if let dualShock = gamepad as? GCDualShockGamepad {
         dualShock.touchpadButton.pressedChangedHandler = { _, _, pressed in
-            watcher.stickMouse?.mouseHeld = pressed
-            postMouseButton(.left, down: pressed)
+            postMouseButton(.right, down: pressed)
         }
     } else {
-        print("[warn] no touchpad button on this controller; left click unmapped")
+        print("[warn] no touchpad button on this controller; right click unmapped")
     }
 
     // Create (the ⊞-ish key left of the touchpad) → screenshot selection.
@@ -1936,7 +1935,7 @@ func attach(_ controller: GCController) {
     // the status bar menu).
     CheatSheetOverlay.shared.dismissHookInstaller?(CheatSheetOverlay.shared.isVisible)
 
-    // Left stick → mouse cursor (paired with □ as left button).
+    // Left stick → mouse cursor (paired with □ as left button + drag).
     // Right stick → vertical scroll wheel (continuous).
     //
     // Both sticks prefer the raw IOHID feed; GameController is the fallback
