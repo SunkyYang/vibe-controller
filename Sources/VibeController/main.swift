@@ -1831,9 +1831,23 @@ func attach(_ controller: GCController) {
             return
         }
         gamepad.valueChangedHandler = { pad, element in
-            if element === pad.leftThumbstick || element === pad.rightThumbstick { return }
             if element === pad.leftThumbstickButton { return }
-            if let button = element as? GCControllerButtonInput, !button.isPressed { return }
+            // Allow-list, not deny-list: only a real press dismisses. Anything
+            // analog falls through to "ignore" — sticks drift, and the
+            // DualSense touchpad *surface* (touchpadPrimary/Secondary) is a
+            // direction pad that reports the moment a finger rests on it,
+            // which used to close the map before it finished fading in. The
+            // touchpad *click* is a GCControllerButtonInput and still counts.
+            let pressed: Bool
+            if let button = element as? GCControllerButtonInput {
+                pressed = button.isPressed
+            } else if element === pad.dpad {
+                pressed = pad.dpad.up.isPressed || pad.dpad.down.isPressed
+                    || pad.dpad.left.isPressed || pad.dpad.right.isPressed
+            } else {
+                pressed = false
+            }
+            guard pressed else { return }
             // Async so the handler is not torn down inside its own call.
             DispatchQueue.main.async { CheatSheetOverlay.shared.hide() }
         }

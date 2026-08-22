@@ -154,11 +154,18 @@ app's posted mouse events with a listen-only `CGEventTap`. Input-side stalls
 leave the event cadence intact and the positions stale; this one thins the
 event stream itself.
 
-### Thumbsticks must be excluded from any "any input" handler
+### Thumbsticks and the touchpad surface must be excluded from any "any input" handler
 
-Sticks report continuously and drift at rest. An `any element changed`
-dismissal that does not exclude `leftThumbstick` / `rightThumbstick` closes the
-overlay before it finishes fading in.
+Sticks report continuously and drift at rest, and the DualSense touchpad
+*surface* (`touchpadPrimary` / `touchpadSecondary`) is a direction pad that
+fires the moment a finger rests on it, click or no click. An `any element
+changed` dismissal that treats "not a button" as "a press" closes the overlay
+before it finishes fading in, or the instant a thumb touches the pad.
+
+The dismiss hook is therefore an allow-list: a `GCControllerButtonInput` with
+`isPressed`, or the D-pad with one of its four directions pressed. Everything
+else is ignored. The touchpad *click* (`touchpadButton`) is a real button and
+still dismisses.
 
 ## GameController framework
 
