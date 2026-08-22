@@ -167,6 +167,16 @@ The dismiss hook is therefore an allow-list: a `GCControllerButtonInput` with
 else is ignored. The touchpad *click* (`touchpadButton`) is a real button and
 still dismisses.
 
+### Resting a thumb on the touchpad kills the right-stick scroll
+
+macOS treats the DualSense touchpad as a system trackpad. A finger on it opens
+a trackpad scroll session, and while that session is alive — finger down, plus
+a few seconds of settling after you lift — the OS suppresses the synthetic
+scroll-wheel events the right stick posts. Lift the thumb and wait ~3s and it
+comes back. Nothing in the app touches the touchpad; this is OS-level, so there
+is no clean fix short of seizing the HID device (which would also blind the
+buttons, haptics and light bar). Just keep the thumb off the pad while scrolling.
+
 ## GameController framework
 
 ### Apple's names for Create/Options are the reverse of Sony's
