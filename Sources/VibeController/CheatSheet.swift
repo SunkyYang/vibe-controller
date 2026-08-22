@@ -191,7 +191,7 @@ final class CheatSheetView: NSView {
                 anchor: NSPoint(x: 72, y: 62)),
         Callout(cap: "Options", action: "Tab — shell and Claude Code completion",
                 anchor: NSPoint(x: 38, y: 50)),
-        Callout(cap: "△", action: "Run claude in Ghostty · hold for --resume",
+        Callout(cap: "△", action: "Claude mode · Shift+Tab · hold: Ctrl+C",
                 anchor: NSPoint(x: 58, y: 35)),
         Callout(cap: "○", action: "Esc",
                 anchor: NSPoint(x: 75, y: 18)),
@@ -203,11 +203,14 @@ final class CheatSheetView: NSView {
                 anchor: NSPoint(x: 58, y: 1)),
         Callout(cap: "Right stick", action: "Scroll wheel",
                 anchor: NSPoint(x: 30, y: -30)),
+        Callout(cap: "R3", action: "Click the right stick — paste · Cmd+V",
+                anchor: NSPoint(x: 30, y: -34)),
         Callout(cap: "PS", action: "Mission Control · Ctrl+↑",
                 anchor: NSPoint(x: 0, y: -22)),
     ]
 
     private let combos: [(String, String)] = [
+        ("L2 + △", "Run claude · hold: --resume"),
         ("L2 + R2", "Dictate straight into Ghostty"),
         ("L2 + ○", "Delete (auto-repeat)"),
         ("L2 + ✕", "Undo · Cmd+Z"),

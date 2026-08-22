@@ -13,14 +13,15 @@ Current DualSense button assignments. The implementation in `Sources/VibeControl
 | ✕ (Cross) | `buttonA` | `Return` (default) / `Cmd+Z` undo while L2 is held | |
 | ○ (Circle) | `buttonB` | `Esc` (default) / `Delete` while L2 is held | |
 | □ (Square) | `buttonX` | Mouse **right** click | Left click moved to the touchpad click |
-| △ (Triangle) | `buttonY` | Short press: focus Ghostty + type `claude\n`. Long press (>0.55s): focus Ghostty + type `claude --resume\n` | Waits for `NSWorkspace.didActivateApplicationNotification` before typing, with a 2s fallback |
+| △ (Triangle) | `buttonY` | Short press: `Shift+Tab` (cycle Claude Code default / auto-accept / plan). Long press (>0.55s): `Ctrl+C` interrupt. **With L2 held**: short press focuses Ghostty + types `claude\n`, long press `claude --resume\n` | Mode cycle gives 1/2/3 haptic ticks and flashes the bar white/green/blue from a local counter (it cannot read the real mode; one extra press realigns it). Interrupt is a heavy thump + red flash. L2 is sampled at press time. Launch waits for `NSWorkspace.didActivateApplicationNotification` before typing, with a 2s fallback |
 | D-Pad ↑ | `dpad.up` | Arrow ↑ (default) / `Cmd+T` new Ghostty tab while L2 held | Long-press auto-repeat mimics macOS |
 | D-Pad ↓ | `dpad.down` | Arrow ↓ (default) / type `/new\n` while L2 held | |
 | D-Pad ← | `dpad.left` | Arrow ← | |
 | D-Pad → | `dpad.right` | Arrow → (default) / `Cmd+D` split right while L2 held | |
 | Left stick (analog) | `leftThumbstick` | Mouse cursor movement | |
-| L3 (left stick click) | `leftThumbstickButton` | Toggle the on-screen button map | A click-through HUD drawn in `CheatSheet.swift`. Dismissed by any other controller button (via `gamepad.valueChangedHandler`, with the thumbsticks excluded so drift cannot close it) or by any keypress. Also reachable from the status bar menu ("Show Button Map") |
+| L3 (left stick click) | `leftThumbstickButton` | Toggle the on-screen button map | A click-through HUD drawn in `CheatSheet.swift`. Dismissed by any real button press or D-pad press (via `gamepad.valueChangedHandler`; analog inputs including the touchpad surface are ignored) or by any keypress. Also reachable from the status bar menu ("Show Button Map") |
 | Right stick (analog) | `rightThumbstick` | Vertical scroll wheel | |
+| R3 (right stick click) | `rightThumbstickButton` | `Cmd+V` paste | Pairs with Create (screenshot, then paste into Claude); mirrors L3 on the other stick |
 | Create (left of touchpad) | `buttonOptions` | `Cmd+Shift+4` screenshot selection | Apple's naming is inverted from Sony's: `buttonOptions` is the **Create** key, `buttonMenu` is **Options**. `attach()` logs both `localizedName`s at connect so this can be verified per controller |
 | Options (right of touchpad) | `buttonMenu` | `Tab` | Shell and Claude Code completion |
 | Touchpad click | `touchpadButton` | Mouse left click (with drag via `mouseHeld`) | The capacitive X/Y drift that got the touchpad surface disabled does not affect this — the click is a plain digital button |
@@ -30,7 +31,6 @@ Current DualSense button assignments. The implementation in `Sources/VibeControl
 
 | Button | GC API | Status |
 |---|---|---|
-| R3 (right stick click) | `rightThumbstickButton` | Unused |
 | Touchpad (analog X/Y) | touchpad | **Intentionally disabled** — capacitive drift was unworkable; the left stick covers the same role |
 | Mute key (below the mic) | — | Hardware-level, not exposed by GameController |
 
@@ -48,8 +48,11 @@ Current DualSense button assignments. The implementation in `Sources/VibeControl
 - Mission Control → PS
 - Screenshot selection → Create
 - Tab / completion → Options
-- Launch/focus Ghostty and run `claude` → △ short press
-- Launch Ghostty and run `claude --resume` → △ long press
+- Cycle Claude Code mode (default / auto-accept / plan) → △ short press
+- Interrupt Claude (Ctrl+C) → △ long press
+- Paste → R3 (click the right stick)
+- Launch/focus Ghostty and run `claude` → L2 + △ short press
+- Launch Ghostty and run `claude --resume` → L2 + △ long press
 - Dictate directly into Claude (force paste to Ghostty) → L2 + R2
 - New Ghostty tab → L2 + ↑ (Cmd+T)
 - Split Ghostty right → L2 + → (Cmd+D)

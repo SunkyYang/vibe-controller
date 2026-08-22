@@ -31,6 +31,8 @@ let kVK_ANSI_D:            CGKeyCode = 0x02
 let kVK_ANSI_Z:            CGKeyCode = 0x06
 let kVK_ANSI_4:            CGKeyCode = 0x15
 let kVK_Delete:            CGKeyCode = 0x33   // Backspace ("Delete" on Mac keyboards)
+let kVK_ANSI_V:            CGKeyCode = 0x09
+let kVK_ANSI_C:            CGKeyCode = 0x08
 
 /// L2 acts as a controller-side "Fn" modifier. When held, other buttons can
 /// produce different keystrokes. Currently: L2+○ → Delete.
@@ -346,22 +348,39 @@ func launchClaudeInGhostty(resume: Bool = false) {
 }
 
 /// Long-press detector for △: short press → `claude`, long press → `claude --resume`.
+/// △ is the "Claude Code mode" key.
+///
+///   - short press          → Shift+Tab: cycle default / auto-accept / plan
+///   - long press (>0.55s)  → Ctrl+C: interrupt, the panic button
+///   - L2 + short press     → focus Ghostty and run `claude`
+///   - L2 + long press      → focus Ghostty and run `claude --resume`
+///
+/// Launching Claude is the heavy, rare action, so it lives behind the Fn
+/// layer; the bare key does the thing you reach for twenty times an hour.
+/// The L2 state is sampled at press time so releasing L2 mid-hold cannot
+/// turn a launch into an interrupt.
 final class TrianglePress {
     private let threshold: TimeInterval = 0.55
     private var timer: DispatchSourceTimer?
     private var fired = false
     private var armed = false
+    private var withFn = false
 
     func handle(pressed: Bool) {
         if pressed {
             armed = true
             fired = false
+            withFn = l2ModifierHeld
             let t = DispatchSource.makeTimerSource(queue: .main)
             t.schedule(deadline: .now() + threshold)
             t.setEventHandler { [weak self] in
                 guard let self = self, self.armed else { return }
                 self.fired = true
-                launchClaudeInGhostty(resume: true)
+                if self.withFn {
+                    launchClaudeInGhostty(resume: true)
+                } else {
+                    modeCycle.interrupt()
+                }
             }
             t.resume()
             timer = t
@@ -369,7 +388,11 @@ final class TrianglePress {
             timer?.cancel()
             timer = nil
             if armed && !fired {
-                launchClaudeInGhostty(resume: false)
+                if withFn {
+                    launchClaudeInGhostty(resume: false)
+                } else {
+                    modeCycle.next()
+                }
             }
             armed = false
         }
@@ -377,6 +400,57 @@ final class TrianglePress {
 }
 
 let trianglePress = TrianglePress()
+
+/// Makes Claude Code's invisible permission mode something you can feel.
+///
+/// Shift+Tab cycles default → auto-accept → plan. We cannot read the real
+/// mode back, so we keep a local counter purely to pick the feedback: one,
+/// two or three haptic ticks and a short flash of white / green / blue on
+/// the light bar. If it ever drifts from what the screen says, one extra
+/// press realigns it; nothing is lost.
+final class ModeCycle {
+    private var index = 0
+    private let colors: [GCColor] = [
+        GCColor(red: 0.9, green: 0.9, blue: 0.9),   // default: white
+        GCColor(red: 0.0, green: 0.7, blue: 0.2),   // auto-accept: green
+        GCColor(red: 0.1, green: 0.3, blue: 0.9),   // plan: blue
+    ]
+
+    func next() {
+        index = (index + 1) % colors.count
+        tapKey(kVK_Tab, flags: .maskShift)
+        print("[mode] Shift+Tab -> slot \(index)")
+        let ticks = index + 1
+        for i in 0..<ticks {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.09 * Double(i)) {
+                watcher.bumper?.bump(intensity: 0.6, sharpness: 0.8, duration: 0.04)
+            }
+        }
+        flash(colors[index], for: 0.6)
+    }
+
+    /// Ctrl+C with a red flash and a heavy thump — unmistakably "stop".
+    func interrupt() {
+        tapKey(kVK_ANSI_C, flags: .maskControl)
+        print("[mode] Ctrl+C (interrupt)")
+        watcher.bumper?.bump(intensity: 1.0, sharpness: 0.3, duration: 0.18)
+        flash(GCColor(red: 0.9, green: 0.0, blue: 0.0), for: 0.5)
+    }
+
+    private func flash(_ color: GCColor, for seconds: TimeInterval) {
+        guard !watcher.recording, let light = watcher.controller?.light else { return }
+        light.color = color
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+            if l2ModifierHeld {
+                setModifierLayerFeedback(true)
+            } else {
+                applyClaudeStateLight(watcher.claudeState?.currentState ?? "idle")
+            }
+        }
+    }
+}
+
+let modeCycle = ModeCycle()
 
 /// Synthesize a string of characters via per-character Unicode keyboard events.
 /// Works for ASCII / ANSI / extended characters without needing per-character
@@ -1748,9 +1822,15 @@ func attach(_ controller: GCController) {
     gamepad.buttonX.pressedChangedHandler = { _, _, pressed in
         postMouseButton(.right, down: pressed)
     }
-    // △ → short press = `claude`; long press (>0.55s) = `claude --resume`.
+    // △ → Shift+Tab mode cycle / hold for Ctrl+C; with L2 → `claude` /
+    // hold for `claude --resume`. See TrianglePress.
     gamepad.buttonY.pressedChangedHandler = { _, _, pressed in
         trianglePress.handle(pressed: pressed)
+    }
+    // R3 (click the right stick) → Cmd+V. Pairs with Create: screenshot,
+    // then paste it into Claude. Mirrors L3 on the other stick.
+    gamepad.rightThumbstickButton?.pressedChangedHandler = { _, _, pressed in
+        if pressed { tapKey(kVK_ANSI_V, flags: .maskCommand) }
     }
     let dpadRepeat = DPadAutoRepeat()
     dpadRepeat.attach(gamepad.dpad)
