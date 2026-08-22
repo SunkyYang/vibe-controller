@@ -1149,9 +1149,15 @@ final class StickMouseMover {
 
     func attach(_ stick: GCControllerDirectionPad) {
         stick.valueChangedHandler = { [weak self] _, x, y in
-            self?.currentX = x
-            self?.currentY = y
+            self?.update(x: x, y: y)
         }
+    }
+
+    /// Axis feed in GameController convention (-1...1, y up). Used by both
+    /// the GameController handler and the raw IOHID path.
+    func update(x: Float, y: Float) {
+        currentX = x
+        currentY = y
     }
 
     func start() {
@@ -1225,8 +1231,12 @@ final class StickScroller {
 
     func attach(_ stick: GCControllerDirectionPad) {
         stick.valueChangedHandler = { [weak self] _, _, y in
-            self?.currentY = y
+            self?.update(y: y)
         }
+    }
+
+    func update(y: Float) {
+        currentY = y
     }
 
     func start() {
@@ -1333,6 +1343,7 @@ final class TriggerWatcher {
     var micMonitor: MicLevelMonitor?
     var claudeState: ClaudeStateWatcher?
     var trigger: DualSenseTriggerEffect?
+    var rawSticks: DualSenseRawSticks?
     var stickScroller: StickScroller?
     var stickMouse: StickMouseMover?
     var dpadRepeat: DPadAutoRepeat?
@@ -1541,7 +1552,129 @@ func postMouseButton(_ button: CGMouseButton, down: Bool) {
     event?.post(tap: .cgSessionEventTap)
 }
 
+// MARK: - Raw stick input (IOHID, bypasses gamecontrollerd)
+
+/// Feeds the thumbsticks straight from the DualSense's HID input reports.
+///
+/// `gamecontrollerd` (macOS 26.5) forwards stick samples with periodic
+/// 200-700ms stalls even though the device itself streams a clean 4ms report
+/// cadence over the very same cable (see docs/pitfalls.md). Reading the raw
+/// report here gives the cursor timer the device's own cadence. Buttons,
+/// haptics and the light bar stay on GameController; those are discrete and
+/// do not care about a stalled sample.
+///
+/// Report layouts (first byte is the report ID as delivered by IOKit):
+///   - USB       0x01: LX LY RX RY at bytes 1..4
+///   - Bluetooth 0x31: one extra sequence byte, so LX LY RX RY at bytes 2..5
+///   - Bluetooth 0x01: the "simple" report before full mode; same as USB
+/// Axes are 0..255 with 0x80 centred; HID Y grows downward, GameController
+/// Y grows upward, so Y is flipped to keep `StickMouseMover` unchanged.
+final class DualSenseRawSticks {
+    private let manager: IOHIDManager
+    private var buffers: [IOHIDDevice: UnsafeMutablePointer<UInt8>] = [:]
+    private var activeDevices = 0
+    private let bufferSize = 128
+
+    /// Called on the main queue with GameController-convention axes (-1...1).
+    var onLeft: ((Float, Float) -> Void)?
+    var onRight: ((Float, Float) -> Void)?
+    /// Fired on the main queue whenever a DualSense HID device appears or
+    /// goes away, so the stick wiring can be re-decided after the fact.
+    var onDevicesChanged: (() -> Void)?
+
+    var isActive: Bool { activeDevices > 0 }
+
+    init() {
+        manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+        let match: [String: Any] = [
+            kIOHIDVendorIDKey as String: 0x054C,
+            kIOHIDProductIDKey as String: 0x0CE6
+        ]
+        IOHIDManagerSetDeviceMatching(manager, match as CFDictionary)
+        let ctx = Unmanaged.passUnretained(self).toOpaque()
+        IOHIDManagerRegisterDeviceMatchingCallback(manager, { ctx, _, _, device in
+            guard let ctx = ctx else { return }
+            Unmanaged<DualSenseRawSticks>.fromOpaque(ctx).takeUnretainedValue().add(device)
+        }, ctx)
+        IOHIDManagerRegisterDeviceRemovalCallback(manager, { ctx, _, _, device in
+            guard let ctx = ctx else { return }
+            Unmanaged<DualSenseRawSticks>.fromOpaque(ctx).takeUnretainedValue().remove(device)
+        }, ctx)
+        IOHIDManagerScheduleWithRunLoop(
+            manager, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
+        let r = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+        if r != kIOReturnSuccess {
+            print("[rawstick] IOHIDManagerOpen failed: \(String(format: "0x%x", r))")
+        }
+    }
+
+    private func add(_ device: IOHIDDevice) {
+        guard buffers[device] == nil else { return }
+        let tx = IOHIDDeviceGetProperty(device, kIOHIDTransportKey as CFString) as? String ?? "?"
+        let buf = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        buffers[device] = buf
+        activeDevices = buffers.count
+        let ctx = Unmanaged.passUnretained(self).toOpaque()
+        IOHIDDeviceRegisterInputReportCallback(device, buf, bufferSize, { ctx, _, _, _, id, report, length in
+            guard let ctx = ctx else { return }
+            Unmanaged<DualSenseRawSticks>.fromOpaque(ctx).takeUnretainedValue()
+                .handle(id: id, report: report, length: length)
+        }, ctx)
+        print("[rawstick] reading \(tx) input reports directly")
+        onDevicesChanged?()
+    }
+
+    private func remove(_ device: IOHIDDevice) {
+        guard let buf = buffers.removeValue(forKey: device) else { return }
+        activeDevices = buffers.count
+        // IOKit has already torn the callback down with the device; the
+        // buffer is ours to free.
+        buf.deallocate()
+        print("[rawstick] device gone (\(activeDevices) left)")
+        onDevicesChanged?()
+    }
+
+    /// Hot path: a few hundred calls a second. Parse four bytes, nothing else.
+    private func handle(id: UInt32, report: UnsafeMutablePointer<UInt8>, length: CFIndex) {
+        let base: Int
+        switch id {
+        case 0x01: base = 1
+        case 0x31: base = 2
+        default: return
+        }
+        guard length >= base + 4 else { return }
+        @inline(__always) func axis(_ v: UInt8) -> Float {
+            max(-1, min(1, (Float(v) - 128) / 127))
+        }
+        onLeft?(axis(report[base]), -axis(report[base + 1]))
+        onRight?(axis(report[base + 2]), -axis(report[base + 3]))
+    }
+}
+
 // MARK: - Connection
+
+/// Decide where the thumbsticks get their samples from. Idempotent; called
+/// from attach() and again whenever the raw HID device set changes, because
+/// at launch IOKit's matching callback can land after the controller has
+/// already been attached through GameController.
+func wireSticks() {
+    guard let gamepad = watcher.controller?.extendedGamepad,
+          let mouseMover = watcher.stickMouse,
+          let scroller = watcher.stickScroller else { return }
+    if let raw = watcher.rawSticks, raw.isActive {
+        gamepad.leftThumbstick.valueChangedHandler = nil
+        gamepad.rightThumbstick.valueChangedHandler = nil
+        raw.onLeft = { [weak mouseMover] x, y in mouseMover?.update(x: x, y: y) }
+        raw.onRight = { [weak scroller] _, y in scroller?.update(y: y) }
+        print("[rawstick] sticks fed from IOHID, GameController stick handlers skipped")
+    } else {
+        watcher.rawSticks?.onLeft = nil
+        watcher.rawSticks?.onRight = nil
+        mouseMover.attach(gamepad.leftThumbstick)
+        scroller.attach(gamepad.rightThumbstick)
+        print("[rawstick] no DualSense HID device; sticks fed from GameController")
+    }
+}
 
 func attach(_ controller: GCController) {
     let name = controller.vendorName ?? "Unknown"
@@ -1710,16 +1843,17 @@ func attach(_ controller: GCController) {
     CheatSheetOverlay.shared.dismissHookInstaller?(CheatSheetOverlay.shared.isVisible)
 
     // Left stick → mouse cursor (paired with □ as left button).
+    // Right stick → vertical scroll wheel (continuous).
+    //
+    // Both sticks prefer the raw IOHID feed; GameController is the fallback
+    // only when no DualSense HID device is visible (e.g. a different pad).
     let mouseMover = StickMouseMover()
-    mouseMover.attach(gamepad.leftThumbstick)
+    let scroller = StickScroller()
     mouseMover.start()
     watcher.stickMouse = mouseMover
-
-    // Right stick → vertical scroll wheel (continuous).
-    let scroller = StickScroller()
-    scroller.attach(gamepad.rightThumbstick)
     scroller.start()
     watcher.stickScroller = scroller
+    wireSticks()
 
     // Battery monitor.
     let battery = BatteryMonitor(controller: controller)
@@ -1737,6 +1871,8 @@ func detach(_ controller: GCController) {
     print("[disconnect] \(controller.vendorName ?? "Unknown")")
     if watcher.controller === controller {
         watcher.trigger?.reset()
+        watcher.rawSticks?.onLeft = nil
+        watcher.rawSticks?.onRight = nil
         watcher.stickScroller?.stop()
         watcher.stickMouse?.stop()
         watcher.dpadRepeat?.stop()
@@ -1913,6 +2049,13 @@ claudeStateWatcher.start()
 // Adaptive-trigger effect over IOHID (USB only). Created once at boot;
 // each attach() reacquires + re-applies the weapon-mode profile.
 watcher.trigger = DualSenseTriggerEffect()
+
+// Raw stick reader. IOKit reports already-present devices only once the
+// main run loop spins, i.e. after the initial attach() below has run, so the
+// device-change hook re-wires the sticks when that happens.
+let rawSticks = DualSenseRawSticks()
+rawSticks.onDevicesChanged = { wireSticks() }
+watcher.rawSticks = rawSticks
 
 // Keyboard sync: if the user types Option+` themselves (e.g. when the
 // controller is asleep), keep our state in phase with OpenWhispr.

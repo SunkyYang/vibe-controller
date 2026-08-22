@@ -94,6 +94,40 @@ now installed on show and removed on hide (`dismissHookInstaller`).
 
 Same reasoning applies to anything else tempting to add there.
 
+### gamecontrollerd stalls stick samples for hundreds of milliseconds
+
+**Symptom:** stick-driven cursor lurches every second or two. Restarting the
+app, switching Bluetooth to USB, quitting other apps with event taps: nothing
+changes it. Seen on macOS 26.5.2.
+
+Measured on the same USB cable, same 10-second window, Bluetooth powered off:
+
+| layer | samples | p50 | p99 | max | gaps > 200ms |
+|---|---|---|---|---|---|
+| raw HID input reports (`IOHIDManager`) | 2502 | 4.0ms | 4.1ms | 4.3ms | 0 |
+| `GCController` `valueChangedHandler` | 977 | 4.0ms | 176ms | 300ms | 6 |
+
+The device streams a clean 250Hz; `gamecontrollerd` forwards it with stalls.
+Nothing in the app was on the hot path (a 40-line test program with an empty
+run loop reproduces it), and `gamecontrollerd` logs nothing.
+
+`DualSenseRawSticks` therefore reads the input report straight from IOKit and
+feeds `StickMouseMover` / `StickScroller`; GameController keeps the buttons,
+haptics and light bar, which are discrete and survive a stalled sample.
+Report layouts: USB `0x01` has LX LY RX RY at bytes 1-4, Bluetooth `0x31` has
+one extra sequence byte so they sit at 2-5. HID Y grows downward, so it is
+flipped to match GameController before it reaches the movers.
+
+Two things to keep straight while debugging this class of problem:
+
+- **Plugging in USB does not move a paired DualSense off Bluetooth.** The
+  input keeps flowing over BT; the USB interface just appears alongside it
+  (`[trigger] reacquire: 2 DualSense IOHID device(s)`). Power Bluetooth off
+  to actually test the cable.
+- **`CGGetEventTapList` latency numbers lie for a freshly created tap.** A
+  tap that has just been installed reports an avg/max latency of tens of
+  seconds; it is not evidence that the owning process is blocking events.
+
 ### Thumbsticks must be excluded from any "any input" handler
 
 Sticks report continuously and drift at rest. An `any element changed`
