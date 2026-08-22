@@ -128,6 +128,32 @@ Two things to keep straight while debugging this class of problem:
   tap that has just been installed reports an avg/max latency of tens of
   seconds; it is not evidence that the owning process is blocking events.
 
+### `ProcessType = Background` in the LaunchAgent throttles the cursor timer to 10Hz
+
+**Symptom:** stick-driven cursor moves in ~100ms steps, on every transport,
+with the trackpad perfectly smooth. The same 8ms `DispatchSourceTimer` in a
+bare command-line process ticks at 8.3ms.
+
+launchd spawns a `ProcessType = Background` job with the background darwin
+role (`launchctl print gui/$UID/<label>` shows `spawn type = background (5)`,
+`ps -o pri` shows priority 4). The kernel applies aggressive timer coalescing
+to that role, so the cursor timer fires about every 100ms no matter what
+leeway it asks for. Measured on macOS 26.5.2 with a listen-only tap counting
+the app's own `mouseMoved` posts over 10s of stick movement:
+
+| ProcessType | mouse events | p50 gap |
+|---|---|---|
+| Background | 94 | 101ms |
+| Interactive | 1146 | 8.3ms |
+
+The plist now uses `Interactive` (`spawn type = interactive (4)`, priority 37).
+`NSAppSleepDisabled` (App Nap) made no difference and is not the knob.
+
+How to tell this apart from the `gamecontrollerd` stall above: count the
+app's posted mouse events with a listen-only `CGEventTap`. Input-side stalls
+leave the event cadence intact and the positions stale; this one thins the
+event stream itself.
+
 ### Thumbsticks must be excluded from any "any input" handler
 
 Sticks report continuously and drift at rest. An `any element changed`

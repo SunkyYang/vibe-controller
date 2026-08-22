@@ -20,8 +20,11 @@
         <false/>
     </dict>
 
+    <!-- Interactive, not Background: a Background-role process has its
+         dispatch timers coalesced by the kernel to ~100ms, which turns the
+         120Hz cursor timer into a 10Hz stutter. See docs/pitfalls.md. -->
     <key>ProcessType</key>
-    <string>Background</string>
+    <string>Interactive</string>
 
     <key>StandardOutPath</key>
     <string>__HOME__/Library/Logs/vibe-controller.log</string>
