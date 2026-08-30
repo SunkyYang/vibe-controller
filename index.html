@@ -3,23 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vibe Controller — talk to your Mac through a DualSense</title>
-<meta name="description" content="Use a PS5 DualSense controller as a push-to-talk voice input device on macOS. Pull R2, dictate, release. A ~200-line Swift menu bar app.">
+<title>Vibe Controller — your DualSense is now a microphone</title>
+<meta name="description" content="A free, open-source macOS menu bar app that turns a PS5 DualSense into a push-to-talk voice input device. Pull R2, talk, release.">
+<meta property="og:title" content="Vibe Controller">
+<meta property="og:description" content="Your DualSense is now a microphone. Pull R2, talk, release — text lands at your cursor.">
 <style>
 @font-face{font-family:'Chakra Petch';font-style:normal;font-weight:500;font-display:swap;src:url(data:font/woff2;base64,d09GMgABAAAAACbYAA4AAAAAYAwAACaAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGngbu2QchHgGYACFJBEICt4wxggLg3oAATYCJAOHcAQgBYQmB4Z/G/ZQFdPNnSDQHYBXg6yEMCqCjSMgBJ6jKKc78rL/PyYoOfaG+w2pRGQ7SmcalZVL+6hUWw+nVKlLNukmld5tst9qatUENWB1fAO/ad4Bi8meH10IoeMi0wnxTwRGNA5uQHT0RLj7G3cGjvNRc3n+n/1Bv8997w3IDyUCaRC/mGZN+qFJiSGywSGR9+f5bf657z0qRMzpk1JRsQCdIgZOmYLVM7rWrltdRLHI9ket48vTPxf87sy8TT9I8AmSJJJOBDEEmlna2tmK7SdIHcdOfNq//+Dr4lr2B2xE5BgUwQPrpeWjHNAL4wbshzk/38h24Y28gIdroOVroHBvwCONE+3Gn51tinA41iqpiMVAJH9pNLL4UL+CvQ0ZsnJl5ZC9rLxw5ZArQwLg53HOHp0ZMFMYEyva3ZC7IUUq0KRJC5UkPwVKOzrMZkJnTqfCFD2ugZmlUylnXnSizf8cAB2qPjJWCE7JHu/fBZZuk2JKLNMSCBiNts199379smbv1SPoJloWd3KFJEkkHiNnf/+dT2/fEPIwhaaGPJDdpiFGh8/CH6gQZVQoCmNQkv8zzbX7PTcgOS8py1EixKK5hdzioiGV0K9mNs3Oji/oBKfTZYln7clBewF0TnEdYhWqcwelHx2V5JQiXU5NBSVFR1/mEuhfJ9PrzXRB8KZIEMos/QqubnISIxEGrYFyK2Q2oJ8eNAQJIiIicvTxqu+G/fdzItTZ7lqKPEopIiJBgiOhiIiz/q+gXjWpGVjwuDbMzXVjFjgYGJTzXP6SADsA5kGeY8KAggEnGDQfB8EN4i6yiFGaZCiRMlVSo6PZqQvmnHcjF1yEXBbkeY176RXy1gfirxsBc8RYCT/9R3PI1PdjHjHZHouOCRGAHh4MBf34QoRA+3pgQMW471casQiQH8FzWUjADxV+YwCFQLHXY/DTCYK67ivV71lqoUpc1AIIOkRPD1Fgo7IlfLXlQqCa0PvvfT8qmL5ZswjV8zqM99Y771HDLNuxA0vVIgkItEaGaV8H5ANC1COmvrsNm7LdhvHkmQLvEzsc2rQ/a27lLb65N/0mXe9Te+3XeNVXevmXCU6BOK/hwi7o/G68ylOc04nAtlxoVsQl6ASG/3zs9hkP29s935+niNjT3d9NfJmfhX7WpW2facd36Nq351E/Htu2DRvccsMLYbY1db+OTVj3Wle/ysfusaTAipe7jONSNNELT4IYiIDQQknTzndec31Czk2TPbXDJWc9gTCbU1EYsL/7sa/7b3/v45um3u114Yv8NK3saA90V7d0XfsRvrTzO7N9EctYbsfhTt4M/bxfrW15C5vdtL5uQqOqb0g1VdejcmEJ2K3fsvwyMQL9n695n5f5O2Ao/2Fu5yrk04bcAkDhGVHnNtO4fUX29kJ+hPlhEVIE+MxnpQmSyZCQEYGsr/n+DocBi8drU39H4tSzOu06Q2coZkWMWMctEuBScjtf2us27WFjF7XwOTWPi8yr50dja6by0WM3xbFHprOgYlVagxyvgxzXQQoOOOwOoLJd5DvEMXYdwWmPITZ9tctrKmAzHQsrxHOT9D3h6+6d3QSaF07KMmcKCqRhpx0InmO2DkxNIJVUUk06mQT67n3g1Lk7igwLcASbdy/TpnfTe9NbYVOQOKDbCTeNedSKQIuWEJtAEwYNuxF1NcYQQVSLOguRj31XwPZvZLZJFVgCrkIdLgBywkkk76e4/z1MENNl/Cdo+fLiSoZkTaBVsS6eB3btNONDoDb6N/KDcG5YHeWQQbu+bK3BBqjCANLuRuvi5QdY+TZi0V/67/2JC8t5BKjX8hyTJSjM+Ca7dDnjQ/ZHrdY+vsiuLLJvrtClPd2247Qsj9kTemxphRZguRiOS8xpc+6UNEKSiDN74Uu0+g0H3Ec8pzQ79KccYWP/iMAXXv+B46fPVtXU1X/fYOfgmRyFESGwMHBwi1lJeMhuJkcKPJ7C4y0EZTeiMhKfn1D5ixnN19IE0MIECccyWiQOo9hmcQhb/Ns50mXgypZLKE/pYmWIUIVwVIpQlVio6Rao1chcs+BaarpW7VgHTpnYmmwYpn6EZkAoNgjdVmHYLlQ7Bbe7m7DXAYhJMEdnsMHYhE2YTj49szIflJWBoEjlXv8eG13v2g5rFsZWWa10E83k9m1jxHWy2pqeyZltrrXkSFfg3AACycZgWNNF6fvG89rOO9nBXryFLMqfzNLktckNFFtZs9J66+jk5nhNF97Pbk75j7c4h5TSXKnXFFJ9ttCt9hilS1fjItTpOtJyeblhDch1z9XXnH4m6UlhnqrKLnHtvdshpPYGzeCE67M2VzkaI2SEghsf0BpPXYUIVbxgIeOYW1/4yWifNs3iVKNru67sWW7inUwHcqbtmOaIeyhPtwUy7qrMBikMQSKa50nEku4iNOZ0C9mqWA7y0skRROXYm9ROO8MHxqWLEpFPPnnkk08zYrQjjTjpJSEQp/RSF/zq5jYdlRZuQbSgkLa0oC0taEtLWpXWmty5RDZZtHZOHyXTGR3UR/RLNx8Xbl80qaSCevEIQcLgwl0QvRMCr0R9v2RIkOAShSNduMY4Jhy4lbyQUqVHypQj5BMnlTTSySCPTPLJcJZAUkiZoXxkhhwBZj78JYxQ1c7TSWVw19P+kj29irA/OSQ05q3r2e8UV/JSaB9057m9HkfumZImetrf7o+bVl2adx6v9txDNueblsJ8GCJUCUghnowi9d6kgEhFMxleuk1GZc1puErZQEf4FWYcxX7XtnYqP7BM9KVsaZ4L7G2ZBrylk6aPGZptRaXBGLpjrEe6agsZ7HK+GVEAMjQLN62doLI4rJV3zvuqzYXt7Ht/TgiGNgnZ1d0KpSgLeUN0oBFpIBSp8w/ia3jSHajr72ZvzNR+sF+LObk+0ep+cIcvcqVzBhdrYB6D6LEvCKZxGmuai9O57EouS29JZ1WqrQq3UUfm/esS6cSYc+stFRBtPAQXotROaitl1EAeTDxeda6MRRaHjNBJJt9VqaI4kV2B81RKjXyyzls8Xi/MVAOmfpELUy8nxKl/6o70O111hUCwAjYQE3LkzpqnQGIYNQKLOQ4uNN6JaEtERIw4CfJIoQWpFJJGPhnOGJwL6ZboLhn1tCdJBkkySHIE2eRQQC5tyHGHX6BKurESM+PFyQQRmyQyfSIyRaT6xdqAWNrqjlMBrUo7JoTpiLAcFaZjzhq987MgLCoYHgRoi7HN+XDQGVFQCWvOrDBm5/PpGJhYqATYmkT7r4UI4NCJf2fpXw7c4JVeysmP++kt+PVd7M8WN6TKypqikbM5nm2JDW8LiixcBPCzx+66zLGTEHeJuYy/y8ZnSUTMiTM5F67cuFPyoxFOL0KUaDFixYmXq1SZWk1adPyKbmtqRIXRzDSOfxCvEb/2n1rZhl8goNPUTrPhy+p1+tZ0gLiNhp1N/DsKMO0wKoa9BIap3gG3K7Bnti1KG1TQQAcDTLACR0fTgRbBFgJ0CMUohCEcETB0ojqJRgxi6/62Bt7ZGkrEvwpBWft1kT9HAhog5ldhRdPKDwKBMiEfBShEEYpRcnp/HxpoyFvg1SA5XgW0WbsZYw844mgaxdTxhKp0cVMnzc1as3TEvTMnwRlyuMAVbp3gRiHQIRSjEIbwoJFFmBmEKEQjBrGd/HYKUIgiFKOkU9dJPRrQ2N3UQVsXtQ8pJ0wqFDJAAx0MMMGKYoFAIBAIBAAAAAAgAxEwIArRiEFsndhJRt5orui6ukndyeoNDWi0phUtaEO7dc7epQ7WsX6xsbUDZKA3eSgNqBgtQAcDTLC+zK+FpiNtJy2t+nvOQPTTX+dREY3IpsuuartG8RqxcO7NKuBYKnvyCFNAW8GUoFV+7IriSPiw08KZG+dKck0jPku1dKukOqIgHiPN/AiXDAHhOpaZJtBSCnB2cDRvhYZ3VYugAFNOCDIbHYiEEXmoHSP6/wCIsndg6HDtErBh7BDAsRQwOJijDkGofyKsTI7+sRpEExBoBS4gLmSYvY0tBPNbQZkMi39kcyzKyaU5xzrLzY1quV5bZVDnll69Rx4zBeqCb6dj6G0xtovGt5pgmIhJ9eRu6UubQogA42yhQCBIkAwjtkVo/Ez1uXbCJqjrx2IBO+/VCQTM0en5v3dR4eNJDqeo2Hzhp30fAtcLOk0gurTTApahOgoWXU9gdhwcA8dy0MPkoiPx+8G97WcYs9I7UxQsf3tN7ncGWeYIEgFLUY0A4Qj7qWBGQvxUz0CL++8JTuqaYEKwrME3Llj8VoxIJhTZNaFQGrd1kRg2qq6vnqkTJhGCxMWsvBGFQRA5O/zktqvgturb8cqOGC6qFZYvc3xCEC1Z/XgECVsCTMsj8FKxGHyRiRwHoRi7ufEmmowKFBmmCq6QB9RCCJjqEJGX23r8tuAbzawy05Oh5eAKoBF96BgSiMA32X+ic1SbXUlHlFs+ooB6tmnAec6bGynj6ttnhmfPdBZOO/0ZHAdbluND/x1g/K6+nwjNA+TnmkAZHKj/MjgkEzWbnewyBVze+Tz567bHMIok1tSzfdjHQziBM3Dpp1BkKyJFEpGTSCXSiMLgFbFEPEc8TyKQWAz/Jz9SxItGv303JvRwCPABp/c3F1mL7J5fKfL/UKa/gYsBtBTw/xFEHHr53//gv0++WwPAd08PLWzsGlo1pGyQz44/i6xH1I48bQAEcDxwtaHQAfJclnrK2e8VZV/m+/8+WOu0LS544Ikzttths6sG7NVvq0Gr3XbTLes9RmDj4DFjyYo1GyQHIhJSjtx58uJNScWPP40AgXbbZo/7DvoqiN5okYzixEuQKN0YmbLlyFOmQqUqNWo1adaiVYed/rbLXWetc84l5132j2e+GNLtuHv2+c03f7hjrnk+emqjT+boccJSiyyzAR0FFRMNAwuXBQFzQvZsjWCHT8aFE2du5K5zNZKaD19aHqqFChYijM4o4SLEzrV/0GmSpUhlkKtIvgIlCt1QrFGdeg3alGunUOo//3ruvaOOOcTkiMMQ1P8fAP8C8ifwP5jzFVhwNxgPAvUwQAFQja0UDkEwGOThWcyjseibmdx95muy8aadXL6bByuNAebH7JzX4iE0ZWvuNMoEQjPhJ7JMLG7R6afBMVGx5nmO0IuQFqMlmIVwuClxU4zJ5qfIDmFwNxeGpYxmlPlhFmuyFAIIRybS3LHtqqadwZK4kR5CQ4pKznSUvgvNMl9uHXeJyki1szquxoQ3LAiwKaEv4puATia18ip1ObxIaOysqirGOTdWax6aikdrUbmIzRBpsbIEAXHL7Z0WAGZNI8hBUsSCsgw8RJ5pgC0xAq16Mc+ykTujO6d4SxdjnpVMwscMgiQk2KmVeDn2x98G+wdDGrroW+ZoHI/s/0aLCPw+hMbLY9xV7Ic2YZFgcVzLKuK+k32EV94mUPbchp12orB4WW+cH+kOW4rOZUZx5sTWwIoEi7ddtY/13xernFalq58xoCDabkCtnQ17kYGIEhTN6zxoaCutWXnZcDS5KDxuo7WxHEOL9gceOa1oEXrdQUucfUjFOx1T/J514fpd0X3F38uXO/uKPjPmTL/V8zgr33F9N9WOOpXbSE6bnbS4yjjZTiWVxQJXFeH3JwM2Chod3Hb94zZH0zKcPMvoz6Dk1QQ2i8qbdkYIqFyqWZWF4OyKCyyhtgyUx8C0rtGaSCmWv1XE3hDodvmJLF2OeiCe9yPCiGKBfpEoLc6oUi7eFpyhuCbaSozugojflk7qj2U5SZLyXdfU4Ebd3NYZ9UaDjbCtwteta1h69dVwNmH4RteUW4WkNEtdpTUOdp7aF5h2vrc8yfaNf0IZ7vCv+6y1iKFx50QErAzRaIa7tYKBv9f4JxTTCMfKUQ8n410yVLCqf1LgIGtdYkHTwKJu601P2xM3oLWrvq52XSaigcPgmqAYVxpk+immBo2khT02L3gFK+nlhHeFi+te1z8PxX5F2V2BthA9DXWotcbc0FI0pMeYnL/q1nguXfPo2eiEAxejkQGvVaTEU2N4eX2DOVFsLxAIrxAKc6Wuamb4Mj3IjNScU1oaHRt2+ZFo1WajZyotzdJYI1remI9Ns9ud+5gVA8yatFqNNxVqBk3YFulUZpw0X2krdc0TTIsn2jP/X8RtMl7n7orBnFZdirFZR1sN5UQ04XI1Ija03cHibZRRg4Igf4EenMqqNA4O1dUUHdHyTa7QxU7li0m3hydKWxAHYIyo0FF848VDybBL4NdObiMMSiE5U0GiVyOifDLlg5gopavQkDDdgmCQLY42PZOsV7kWXCzZJhIY8feZl7U4JJWrrTqI4hM9gDLqY3zEQ2zhQRQ9TeY6xYSTy9ZmMk8HUEpx2XNLiJnCGSdpPRi6EkqLrKhLJzm2d7AvPH+Zspp/bumznPi7KVjScw/RHmonE6TpRc9s9B1T4wpu652CSbRr9hRNtaUqi1ebdsGQwjLOWqvNkqtVvDckWLD/S+e9cPa+JfteaRHP1z3GI9ppUSZQOprmRH7LMQqGBPBglywJNtmw2Q3yMwmKGjtYUWjCz2mbJ5zZ3mcyz12a69R3NkWmbP1Of09N2xUBei7aRpNQqnH72oqt/06fVPCsU16KEsmQNtrhP+ORuEvLr6euN4yZhnKldTsjBj3zNoSUSpi1xjFts+09d8l3LYiZTSQbCuXHn3YrN3KNK5dbXOEaIwqx75hudF+GpiE8luJFDwrHUALVo54fvRXP6l4xxIp57KwQ3VRpcLtzK3yj61I0aCeZb6padN4MZv5dTVgdX9hXqlOTiURSJNYSFV4gJN7j/1hy3C6l6ZJZuozq1dPW5tPI6rzK0ULK4t77MbnBVG+OY7ZTR11i8jFlRtBfyyti4HCih25J6mqJ0DqsyRFfPuhDzuDy//qBHIiJGqw4caVwcM0ppikXGQYzNe40ofKTIorqm9bXotjy1CKeXF7xxTIJQ16RegIxtZUYiprFgJKG2YNwTQ7F4w0fod4+mhu2mzYk0rnogMGhT1zqt1WDv61K3S3IiRNkxYG58amElPxkVF23d2I/pIu4MNUZjTZsmwYMXAVNX74jk3NpaVWZ5Y5VfP/f/UQx3eIJf0JI9uvs7LDMCgWaYWt2VjibbTNQ7HvZMPgM8z1YJgz3wlS7wotB5JHuNzy6OjtTLhi4Qzk5L2XiUCER2zJkEEyRuvJEhiRD8CHPTZr3x8Pk4Z+HOIOKPSWLftQQml+KyKdsbAdp+SuC1E5HGJREwm+5vzg27iI/dtNZRMh6kIj0QSYUTKoQxHJXJ7DPraIS/9+rpBLM5jfRRTeeC5lzXv+MtjQFbYyRDE1mA3H52B72pRt75c5r1LsFTWfFjWcFbr2lvVY7WjBGb1ppqGPS7Ks9kgDmQjNEzPXytHLc0Shz3Gaeza55L4o4C56MecDsquBxI1BubFaQip8sqoZItzBvEX/X7AYVHy2O+bOx/mRnGgzcHoT+YtkIL1Rn4M/y3j1gPfiTNURYUSOyfitY6BjYc6ADxoZXFhT5ZN9FWiIZnDn7c3NB1KvX6KoypWU0Mu1B6KVcjoV584d4bwhAUcyMk783brT3RWwTQkKUm0gLuVfcYq4vQg6DYSa8KH1EdCcemREYcmRoqvOlcyoy5uSEgDmXejVBcDUh9R1nAAnHGoVd9giJJUJBmpCdwbE7hV0OCFkYNn8QlqoeZ3tY/khuTbXYh9qHWuB/n06biYsScFGms6gvAoWqzVuQg79W8/NRhv8BvmQHSXYn7YcqJ1CBKLcNoU3JShVed0xOaUJe+UrE8PYVsh+0+1HBTG67bF7EQzL5drSqjS4W1SUnfMS5g5z+UaizKWyFWGSmAlJSq2kmSO5Pj5eYs9OZZ7HUOSGAVtPZnxgmnpriOOp4i+op1Oj3sp+gQjqfVUoDfj2DznRsIIBRMjmXJZHDqYsatUplr8QQe0AtX+3sdMLdoMjCUoRGSOmd9cj/V6KeHpsaNJ3wSu2VfD81KjFg+twUraKC5xzXHRBAq5icbgxTb0Jcjd1XH0Rl9+jph1+q4nGoP6DFtJk63R5FoRHfje0+SAHRFjKMW4nPpiV3TvMnCXkDwwQxORdwDO96Uq9d7ux0LmH0EH6L+obO3sOyG6kCB5uXJ6QgBAWNF43HGAOlWe0UxLbNjYBNnbhmdiRRFobZAqHlZt4iRVyMvZlrrmUcbTnnkbH9xZyXFBhuUbcpCG/T6LTaUqlUIj2E0CaqwJEeGYm0hZzcaAyLShtYdjdqxFBW8d614O3djPHv+To0w9DeYE8rW25KYmpw5I5ZkWbbVufIKr4/tXlUNQ/EK2SvrPU2KPdjiJggdJNdY4I/IlRH23ABzlVa/eDYdSWmSCVxHv46L8mihlBBfo63jsWsYZcWd7ySa3o/RWz52uSZV8Mt2h2hdMrsZ66uddT4CLxtT1apV+A5xoxQChTqIMrR85xntOAZQeTZYh1qz8MOen7n/USlKsj1gK3T6T/Jh+fgGWO+StXqE9LJD1q0frKPVlwoSRqOx02SohNF0RTU0zFaTH9Qd3AXvsuPz8IrIJLZTBXyVH7+DOq9JtVg2A292l5WretqXYca2tLAvo2Rze8yd35KWnNJlPOZhW10xpIuOUsY6FpSu7TW/P3n6k7zgjPzz5ir3tZ/hI9tcxHzHsdnU9LXR/kmht5dR+tBeQXTQaJwUWLjEudi3aFPTVwOfegDzgPUAS2uLdBp9yoKizThIKLbbhczO/GdgTklOh0OiuYYuKsDjDXioaSLJPKMROotV+ePnR8TNWp18CRfUBy9Ex9/QZLlxndIVm1blWPbZoNI0z8m02TTwPOJEFeK7+N8wZHknYqUYzqiEYHXmkwa5xq4cJSBUH+E1pq1PlmJ90GB0lEYd5tbU3mTvFlZzl3lwjTCU+ftcoXtGkLjoGy1er6wttypIlVrkMerZd06xVjwRRkonLvJ2e3S5JvEnHND2Ly3CI2BEPQxXm1Oqhp9w9/kn0gSXiHkQsjvHcGf4/fodIt5aJSNMibdLBwYVwwB6IJL3LRrbBK7blE35MtaflmlYtsfzOLXO1471vMQjpQomL/M346K+hWhdiH5SR8zI27qcNz1J+Lga3loP6n3V1VHJKzRgtF5cYq3QTJNoxeLq2LE6O7pHg+l4eCMBWll3hbJbM+yiDKvCF+TxE8TFBPWIBbPdbmyY8SN8LfhQcp5sPQNTlTJMrpvPScoO9IbJqbTTPLJFJPiBz/OlD+J3xcrLheL7fDvgR6PkmYSmzAECryy3Dd9VEwTbUz3Lq5svLd2vvcN87UgInerb6SkJAeE3EaOZR5oC/ISedEE5A5otmOmF6le6AOexUrw8QgEn3GiyoaR7eVt0xbYKuqvTiR7kMHriRGtRCv7r4weut7frWyWtqjNbZX7v2ajEXsML/xrTotfb6vwp6Oysv7My5tfdzZP33t16njMA3O2y9J4wbuNvWu8i2MI80ZHqd8rxinE76KCexExvYno4HeYDyZ6Hx3Sm4gBzrmRB5Zg68ed1wu+ZVltworUnIXY2rF2HeNbR42Z2OOtursVljaybI/BZNjIsWDo+yQjo1SZRO4gk5SlYFFgqZZokwtNA3smKkJ4oR4IFSkT+W4R0p7E7c4nKovCogrq3q2b6uU9RlLPYkDUBPyEL+uyDP8ppDF+aZel59uPQOCkWUq/q+yp5G9wXsI8YNoxOxRFeHoEw0i6dvRduXCAV7BnXUwSWADs/5T+3GBandddLmbyaLAbwXv7mlpaY/8csOCvGQ4t/ZTTvF8Il9SjvAHLIzVgFstIySC0XguRlpKGab4ilItSmVUitf228wiTybjfOFm5VP4N2SRyq3TnUrwbfY77NI47DiKhw2DIzFJlFaGeRzLxr4IZK1Cd9L7HfkU8n3v5uZRbzPVbaI/5K6YRJoD7CaeT/VX2awIszb2eEzNQrCUzLKtmXrIsOYFay6gVphw7BUTiyh7LZCqSwihHXt6z9LQEeqp7wv9nWrHWNAnpC03x5dK94r0sPAflVEgrxHVLnPn9kI3CQ5NhWSML75qrjtHHqpTb9UBgwEXlRXDvYbXayq2ixCqVF4Vnk/09gjz8QXld5PccXuHvGQSaGg4rmRbrBm/9gkvdF/xAffqH/tQOU9ur8n+ot9XdUICCdyuVVQfpg1Vsp4/SR/uLLuIX4ZrlSJWSMjKIXMYOtQnNfYK5QWxCU4ceeBz742V0mu1eySLw3vRbbOy+kYwKN2UbFnOG0C32Sruicl5AnhgcL4oPyIcjD/Ip3YbSMdLSnXmdavBOzsynD6uzZnrLsYFPm0dEhRRrtbU6XblzupScpdqxbVtHhe3P7Tu2JV24cmXatWux27n7x2hcEOIakFK0zBrnhnB0QhxbchuhTzQtpvx2nqpc72iP0kdFKaPuIRTcm2g8259fzsP/ocbZqq1yL5RrehHlWpEPz7AllcVq9Wu6rih6sucazwRzB0GsLraWKY5zmVnrKRHcGj0LN3gmm51DHnjXYXV1pvpKlWGm6ESrtT8fPcwNO301M5MDXvg7pZzsKd5SsjB9mlL3zmuEQOuNggKek3HmbJgidhfl24bnsk+fdbbQ1z+Lvplcqor2za11jfw/YhYsyjVKx0uLByb/pSeZKx55VwiKuCEwbpginSW4QYD3aMMo8RxKhil5pCNg1REyOFp0F183/nCXnsnaAlGTRI+gh2NW0wfp6zTM2CmsmlQstlIZ4AppDmgOOT1mZa6XF/xxpVvdyDedz5DuV4G4AX2+SxOZv1kbSXZvO2mhEmkcyMEuVVzoqmlWoXXaKphiEoJ9nM/O2I7BbvJMX1ssLFg5Xa4AuTomblRzkJs8W13SWBIdHzWOgNriqqQnnlu/1iSTwYfUemGq3XCsBI9c6eUKdvH46TFGFZD4cGGxs1F4CHh821ZAAgQMoEGhALh4UKpEGeXBLcz4/FooVaKCjMhm8YJeKFWCg0Sh3yMYSCGVgUjs6E+FUiXK4BYqBn8KlCpRQXkiIAV5QhDDabABMEqVqPjlmPn4RUMY+fwOUKoEB5K6YFA9e2lLg+Jk1vdW4Ie/Qg7g8gQAyAPcLyalSpTBjWpV/CSUKlHhUojWFL8ICC8NLgB0JvGNH/yiz/WFhXOg1MwZNM1AXFjuWsi5Ilel+VG1bDF3ISzB0kl4jWeOtTOyMKrUrqp5c0j8BHrYb3YuW6S4lyJYag3E03P+hD3QnR4LVgfzQMLs3XD7ga0t8QAg92cnn2nYB+fgAGpg4BsEqBmCOhMNbwBQL9AZ+Yw1aCbceHpfgP82bOib1vjKY3z9oE3403ozgwe65/OZBcDDiwAWgrpzC4H7ZlXpwyfkJkbYrAH34crwheJAZgffZG04hb1NkI0d3k/gjZTr52Om0I1rooP7NMJ9s6r0aTnxLfgWuMUAMNnl9sCRIN/3Mj46q0HgL5GbaUFFAz46dBC0FGuWaAnW+lPY2wDZEPF+AK+CMbSnF+lFc+EJT3gyfdGbkA7kL83ho75BGta9+QGVfDLW7pSJlGByQQ5V4A51YAOxA5VgOBIfh1/D8/FufC5+C78CV0V6gbpW88Mv25hQnj0uayYnXiDn5JoEbcxqcyYhR3h2cm6/1xuj6VsICDjL1+f/WPuPTsP/BXz64NgXdv9tJePX74bGnrsPzIQBBPwvMOvNQ8D/S4E8I/+taBmA//flFUHtxVvpsB6zZjJWD93K+od7ibBicrIEXmz+WdqUDsDFCA7/Dr95P5QaWY0wMZJbYDDrVRuHtIUOuH11I3FbNTNSsHnpraItPzbM2mg21k44FJJWJV5lY66vVgj38jQyMPQ+piLpi6QFI8Q9gV8qvWxC3lB6v+goiQt2ExrFPsIe9mEMP5TtOfOBMVN5wBBNXyFD0tGCIKkdluXmerhhtJmSvyQd3KuDMTPZVDAd1pMXmHURmU94pVt1ePI7acXfWxWEZQ33bKyozh1UM4/BjOIqLRMjK9v2/zteVdNWAW3MkOkmzSryzGaT+dxTlbB5Yr9BRcqPdCilHKoChiAY1kIn/AlPpSm3esCrn6d7vAI19Vb/05Pag5SGcxJGmVQF6mBE/gT5RT6VMWSZAnI1mW4GXc1ySgpWo/TsK+QQ8CnP9K493bu1LJEhZZTISGU6ad1P/gK6J8dTXi3YxkrHw7MxTerRkhETy39OA0rhbgY0TIw0PjAYemYwMKg8NYm2/I0JZgKwkWwDSQn6DeqTHxlNsZs8vaMHnRdwFhrgHuTDPKiAcj4z9Jv7xSlWZFlDnVlcvOWQFBZRc89knhDwrzA0wSiQ5+4NMGCWYjg0MgC8Hfo+EHHy+0AM1+2BOI2lfiI8kCJU2kAqGTXjdhc80+Yeis93vJlI3czyIW9nLMiLRanZ6dw1ry36KXZVLuxWS0lXhGOVpq6MItjb3n0lLyCfq7GwBNkPRFlYLaOWPF6LVuXePEOf5rzQZ4Z3B5hG+8EqgV//j04+KTxprBB5f5eddjZcQE0lD+s+CfLERRq/LIvbqvHsu1FlkdmkccFEweUVFO4EO7Tliz21Q/4tiO3E1JpFwjxftvdSOr3/ghRgcDIXnJNvqwLbzObISSFn/5Erct5Fl4bPozaucNkVV13jzoNncBbsXjGl624occsc2+2g8ur1U+9Ifm67M4i7r9R21HohUNjrsjtXrlqVfuH0aoz2XIRapnxR6kQyMIpyT6NmLZpEh4AYsaFAnHitErTp0KndgC47JXotSbIUU6RK063XWD3SZRgj00uHZDnuhBVWMidk8Sqw9iLt5yRUREN0xEBMxEJsxEFcxEP8mDH5GEHMffI5wljEMlbM8NgjbUZYTWLQKZNxUAkEY2HLlitICH6s7bJbqNPO2PPBhrzRpv+GYyiYsTHBEbTYmmhhRuB6460DRMQczJNnDR167GJPiqHPJNNMNd34kHGQ49+IIo4k0sjiGKc4Rx6XuMbNDE/dN5Pu63/R87VHzeZMU1I+X0RuN0EJHG/u+wTAiYELN2a3uXPX7wzv63kE05awLhqjbClF6heKMbvym0LNHpQta1fyld8z6lMNZnxvxpW78t9cuosW1Q/TV6oq4sUx+eGgM/fzR2fuG4jaQ8bveoiuboSPh2pSLKPckC+iSCGmHi4SLGcXcxfIzdhllshHTrlSK5LynyaSJQA=) format('woff2');unicode-range:U+0000-00FF}
 @font-face{font-family:'Chakra Petch';font-style:normal;font-weight:700;font-display:swap;src:url(data:font/woff2;base64,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) format('woff2');unicode-range:U+0000-00FF}
 
 :root{
-  --shell:#EDEEF1;
-  --shell-2:#E3E5EA;
-  --core:#15161B;
-  --core-2:#1F2129;
-  --ink:#17181D;
-  --muted:#686D78;
-  --line:#D3D6DD;
-  --lb:#3D7DFF;
-  --lb-glow:#7FB0FF;
+  --bg:#0C0D11;
+  --bg2:#12141A;
+  --panel:#181B22;
+  --line:#262A34;
+  --shell:#E9EAEE;
+  --shell-dim:#B9BCC6;
+  --muted:#868B98;
+  --ink:#15161B;
+  --ink-muted:#5D6270;
+  --paper:#EDEEF1;
+  --paper-panel:#FFFFFF;
+  --paper-line:#D8DAE1;
+  --lb:#4D8DFF;
+  --glow:#86B4FF;
   --amber:#FFB454;
+  --violet:#B18CFF;
   --tri:#2FD9A2;
   --cir:#FF6470;
   --cro:#8CA9FF;
@@ -30,134 +38,169 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:var(--shell);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--shell);font-family:var(--body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
 a{color:inherit}
 ::selection{background:var(--lb);color:#fff}
-
-.wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
 
 /* ---------- header ---------- */
-header{padding:28px 0}
+header.wrap{padding:26px 28px}
 .header-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
-.brand{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
-.brand .g{color:var(--tri);font-size:13px}
-.gh-link{font-family:var(--mono);font-size:12.5px;letter-spacing:.04em;white-space:nowrap;text-decoration:none;border:1.5px solid var(--ink);border-radius:999px;padding:7px 16px;transition:background .15s,color .15s}
-.gh-link:hover{background:var(--ink);color:var(--shell)}
+.brand{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.06em;display:flex;align-items:center;gap:10px}
+.brand .lb-dot{width:9px;height:9px;border-radius:50%;background:var(--lb);box-shadow:0 0 10px var(--lb)}
+.gh-link{font-family:var(--mono);font-size:12.5px;white-space:nowrap;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 18px;color:var(--shell-dim);transition:all .15s}
+.gh-link:hover{border-color:var(--glow);color:#fff}
 .gh-link:focus-visible{outline:2px solid var(--lb);outline-offset:2px}
+.gh-short{display:none}
+@media(max-width:640px){.gh-full{display:none}.gh-short{display:inline}}
 
 /* ---------- hero ---------- */
-.hero{padding:36px 0 8px;text-align:center}
-h1{font-family:var(--disp);font-weight:700;font-size:clamp(30px,6.2vw,62px);line-height:1.04;letter-spacing:-.01em;text-wrap:balance}
-h1 .kc{display:inline-block;font-size:.62em;vertical-align:.14em;background:var(--core);color:#fff;border-radius:.28em;padding:.08em .38em .12em;box-shadow:0 .14em 0 #000c;letter-spacing:.02em}
-.hero p{margin:18px auto 0;max-width:560px;color:var(--muted);font-size:17px}
-.hero p b{color:var(--ink);font-weight:600}
+.hero{padding:44px 28px 10px}
+.hero-grid{display:grid;grid-template-columns:minmax(320px,5fr) 7fr;gap:44px;align-items:center}
+.hero h1{font-family:var(--disp);font-weight:700;font-size:clamp(32px,4.6vw,54px);line-height:1.06;letter-spacing:-.005em;color:#fff;text-wrap:balance}
+.hero h1 .blue{color:var(--glow)}
+.hero .sub{margin-top:20px;color:var(--muted);font-size:16.5px;max-width:44ch}
+.hero .sub b{color:var(--shell);font-weight:600}
+.cta-row{margin-top:28px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{font-family:var(--disp);font-weight:700;font-size:14.5px;letter-spacing:.03em;text-decoration:none;border-radius:12px;padding:13px 24px;transition:all .15s}
+.btn-primary{background:var(--lb);color:#fff;box-shadow:0 6px 24px -8px var(--lb)}
+.btn-primary:hover{background:var(--glow);box-shadow:0 6px 30px -6px var(--lb)}
+.btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.free-note{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.free-note .mit{color:var(--shell-dim)}
 
 /* ---------- controller stage ---------- */
-.stage{padding:8px 0 30px}
-.pad-wrap{position:relative;max-width:760px;margin:0 auto}
+.pad-wrap{position:relative}
 .pad-wrap svg{width:100%;height:auto;display:block}
-.hint{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted);text-align:center;margin-top:-6px}
-.hint .k{color:var(--ink);border:1px solid var(--line);background:#fff;border-radius:4px;padding:1px 6px}
-
-/* SVG control states */
 .ctl{cursor:pointer;outline:none}
-.ctl .hit{fill:transparent;stroke:none;pointer-events:all}
-.ctl .face{transition:fill .12s,stroke .12s}
-.ctl:hover .face,.ctl:focus-visible .face{stroke:var(--lb);stroke-width:2.5}
-.ctl:focus-visible{outline:none}
-#z-r2 .face{transition:fill .12s}
-#z-r2:hover .face,#z-r2:focus-visible .face{stroke:var(--lb);stroke-width:2.5}
-
-/* light bar */
-.lightbar{stroke:var(--lb);opacity:.35;transition:opacity .3s}
-.rec .lightbar{opacity:1;filter:drop-shadow(0 0 6px var(--lb-glow));animation:breathe 1.6s ease-in-out infinite}
-.amberize .lightbar{stroke:var(--amber);opacity:.95;filter:drop-shadow(0 0 5px var(--amber))}
-@keyframes breathe{0%,100%{opacity:.45}50%{opacity:1}}
-
-/* voice-level bars over touchpad */
+.ctl .hit{fill:transparent;pointer-events:all}
+.ctl .face{transition:stroke .12s,fill .12s}
+.ctl:hover .face,.ctl:focus-visible .face{stroke:var(--glow);stroke-width:2.5}
+.lightbar{stroke:var(--lb);opacity:.55;filter:drop-shadow(0 0 5px var(--lb));animation:idle-breathe 4.5s ease-in-out infinite}
+@keyframes idle-breathe{0%,100%{opacity:.35}50%{opacity:.8}}
+.rec .lightbar{animation:rec-breathe 1.5s ease-in-out infinite;filter:drop-shadow(0 0 9px var(--glow))}
+@keyframes rec-breathe{0%,100%{opacity:.5}50%{opacity:1}}
+.amberize .lightbar{stroke:var(--amber);opacity:.95;filter:drop-shadow(0 0 6px var(--amber));animation:none}
 .vu{opacity:0;transition:opacity .2s}
 .rec .vu{opacity:1}
-.vu rect{fill:var(--lb-glow)}
+.vu rect{fill:var(--glow)}
 .rec .vu rect{animation:vu .55s ease-in-out infinite alternate}
 .rec .vu rect:nth-child(2n){animation-duration:.4s;animation-delay:.1s}
 .rec .vu rect:nth-child(3n){animation-duration:.7s;animation-delay:.05s}
 @keyframes vu{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
 
-/* ---------- readout ---------- */
-.readout{margin:22px auto 0;max-width:640px;background:var(--core);color:#E9EAEF;border-radius:14px;padding:14px 20px;font-family:var(--mono);font-size:14px;line-height:1.5;display:flex;gap:12px;align-items:baseline;min-height:52px;box-shadow:0 10px 30px -18px #00000059}
-.readout .tag{flex:none;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8A8F9C}
-.readout .txt{overflow-wrap:anywhere}
-.readout .txt .b{color:var(--lb-glow);font-weight:700}
-.readout.listening .txt{color:var(--lb-glow)}
-.readout .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cir);margin-right:8px;vertical-align:baseline}
+.readout{margin:18px auto 0;max-width:620px;background:var(--panel);border:1px solid var(--line);color:var(--shell);border-radius:13px;padding:13px 18px;font-family:var(--mono);font-size:13.5px;line-height:1.55;display:flex;gap:12px;align-items:baseline;min-height:50px}
+.readout .tag{flex:none;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.readout .txt{overflow-wrap:anywhere;color:var(--shell-dim)}
+.readout .txt .b{color:var(--glow);font-weight:700}
+.readout.listening .txt{color:var(--glow)}
+.readout .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cir);margin-right:8px}
 .readout.listening .dot{animation:blink 1s steps(2,start) infinite}
 @keyframes blink{to{visibility:hidden}}
-.caret{display:inline-block;width:.55em;height:1.05em;background:#E9EAEF;vertical-align:text-bottom;margin-left:2px;animation:blink 1.1s steps(2,start) infinite}
+.caret{display:inline-block;width:.55em;height:1.05em;background:var(--shell);vertical-align:text-bottom;margin-left:2px;animation:blink 1.1s steps(2,start) infinite}
+.hint{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--muted);text-align:center;margin-top:12px}
+.hint .k{color:var(--shell-dim);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
 
-/* ---------- sections ---------- */
-section{padding:64px 0}
-section.wrap{padding:64px 24px}
-footer.wrap{padding:40px 24px 56px}
-.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.eyebrow .g{font-size:13px}
-h2{font-family:var(--disp);font-weight:700;font-size:clamp(24px,3.4vw,34px);line-height:1.15;margin-bottom:14px;letter-spacing:-.005em}
+/* ---------- marquee ---------- */
+.marq{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:13px 0;margin-top:52px;user-select:none}
+.marq-inner{display:flex;width:max-content;animation:marq 26s linear infinite;font-family:var(--disp);font-weight:500;font-size:14px;letter-spacing:.28em;text-transform:lowercase;color:var(--muted);white-space:nowrap}
+.marq-inner span{padding-right:.28em}
+.marq .g-tri{color:var(--tri)}.marq .g-cir{color:var(--cir)}.marq .g-cro{color:var(--cro)}.marq .g-squ{color:var(--squ)}
+@keyframes marq{to{transform:translateX(-50%)}}
 
-/* quick start — dark band */
-.dark{background:var(--core);color:#E9EAEF;border-radius:26px;margin:0 12px}
-.dark .inner{max-width:1012px;margin:0 auto;padding:56px 36px}
-.dark .eyebrow{color:#8A8F9C}
-.dark h2{color:#fff}
-.qs-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
-.qs-grid>*{min-width:0}
-.qs-copy p{color:#A9AEBA;max-width:42ch}
-.qs-copy p+p{margin-top:12px}
-.qs-copy a{color:var(--lb-glow)}
-.codebox{position:relative;background:var(--core-2);border:1px solid #2C2F3A;border-radius:14px;padding:20px 74px 20px 22px;font-family:var(--mono);font-size:13.5px;line-height:1.9;overflow-x:auto}
+/* ---------- chapters (light band) ---------- */
+.chapters{background:var(--paper);color:var(--ink);padding:84px 0}
+.ch-head{max-width:1120px;margin:0 auto 8px;padding:0 28px}
+.ch-head .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:12px}
+.ch-head h2{font-family:var(--disp);font-weight:700;font-size:clamp(26px,3.6vw,38px);line-height:1.12;letter-spacing:-.005em;max-width:22ch}
+.chapter{max-width:1120px;margin:0 auto;padding:56px 28px 0;display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center}
+.chapter:nth-child(odd) .ch-visual{order:-1}
+.ch-copy .ch-mark{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-muted);display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.ch-copy h3{font-family:var(--disp);font-weight:700;font-size:clamp(22px,2.6vw,30px);line-height:1.15;margin-bottom:14px}
+.ch-copy p{color:#4A4E5A;font-size:15.5px;max-width:46ch}
+.ch-copy p+p{margin-top:12px}
+.ch-copy p b{color:var(--ink);font-weight:600}
+.ch-visual{background:var(--paper-panel);border:1px solid var(--paper-line);border-radius:22px;padding:34px;display:flex;align-items:center;justify-content:center;min-height:280px;box-shadow:0 20px 50px -35px #0006}
+.ch-visual svg{width:100%;max-width:380px;height:auto}
+.ch-cap{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-muted);text-align:center;margin-top:14px}
+
+/* chapter animations */
+.trig-arm{transform-origin:70px 68px;animation:trig 3.2s ease-in-out infinite}
+@keyframes trig{0%,55%,100%{transform:rotate(0deg)}18%,38%{transform:rotate(13deg)}}
+.trig-mic{fill:#C6C9D2;animation:trigmic 3.2s ease-in-out infinite}
+@keyframes trigmic{0%,14%,58%,100%{fill:#C6C9D2}20%,36%{fill:var(--lb)}}
+.trig-wave{stroke:var(--lb);opacity:0;animation:trigwave 3.2s ease-in-out infinite}
+@keyframes trigwave{0%,16%,55%,100%{opacity:0}22%,38%{opacity:1}}
+
+.bar-demo{width:100%;max-width:380px}
+.bar-row{display:flex;align-items:center;gap:16px;padding:13px 0}
+.bar-row+.bar-row{border-top:1px dashed var(--paper-line)}
+.bar-strip{flex:none;width:120px;height:10px;border-radius:5px;background:#DADCE3;position:relative;overflow:hidden}
+.bar-strip i{position:absolute;inset:0;border-radius:5px}
+.bar-blue i{background:var(--lb);animation:bstrip 1.8s ease-in-out infinite}
+.bar-amber i{background:var(--amber)}
+.bar-violet i{background:var(--violet);animation:bstrip 1.1s ease-in-out infinite}
+@keyframes bstrip{0%,100%{opacity:.35}50%{opacity:1}}
+.bar-lab{font-family:var(--mono);font-size:12px;color:var(--ink-muted)}
+.bar-lab b{color:var(--ink);font-weight:600;display:block;font-size:12.5px}
+
+.rumble-grip{animation:shake 2.8s ease-in-out infinite}
+@keyframes shake{0%,60%,100%{transform:translateX(0)}64%{transform:translateX(-2px)}68%{transform:translateX(2px)}72%{transform:translateX(-2px)}76%{transform:translateX(1px)}80%{transform:translateX(0)}}
+.ripple{fill:none;stroke:var(--lb);stroke-width:2.5;opacity:0;transform-box:fill-box;transform-origin:center;animation:rip 2.2s ease-out infinite}
+.ripple.r2{animation-delay:.35s}
+.ripple.r3{animation-delay:.7s}
+@keyframes rip{0%{opacity:.85;transform:scale(.7)}55%{opacity:0;transform:scale(1.45)}100%{opacity:0;transform:scale(1.45)}}
+
+.stick-cursor{animation:glide 7s ease-in-out infinite}
+@keyframes glide{0%,100%{transform:translate(0,0)}20%{transform:translate(150px,30px)}45%{transform:translate(210px,110px)}70%{transform:translate(60px,130px)}}
+.scroll-lines line{stroke:#D8DAE1;stroke-width:6;stroke-linecap:round}
+.scroll-lines{animation:scrolly 7s ease-in-out infinite}
+@keyframes scrolly{0%,35%,100%{transform:translateY(0)}55%,80%{transform:translateY(-14px)}}
+
+/* ---------- setup (dark) ---------- */
+.setup{padding:84px 0 72px}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:start}
+.setup-grid>*{min-width:0}
+.setup .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.setup h2{font-family:var(--disp);font-weight:700;font-size:clamp(26px,3.4vw,36px);line-height:1.12;color:#fff;margin-bottom:14px}
+.setup p{color:var(--muted);max-width:44ch}
+.setup p b{color:var(--shell);font-weight:600}
+.codebox{position:relative;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:20px 74px 20px 22px;font-family:var(--mono);font-size:13.5px;line-height:1.9;overflow-x:auto}
 .codebox div{white-space:nowrap}
-.codebox .c{color:#6E7480}
-.copy-btn{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;background:transparent;color:#A9AEBA;border:1px solid #3A3E4B;border-radius:8px;padding:5px 12px;cursor:pointer;transition:all .15s}
-.copy-btn:hover{color:#fff;border-color:#fff}
+.codebox .c{color:#5A5F6C}
+.copy-btn{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:11px;background:var(--bg2);color:var(--shell-dim);border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer;transition:all .15s}
+.copy-btn:hover{color:#fff;border-color:var(--glow)}
 .copy-btn:focus-visible{outline:2px solid var(--lb);outline-offset:2px}
-.req{margin-top:14px;font-family:var(--mono);font-size:12px;color:#8A8F9C;line-height:1.8}
-.req a{color:var(--lb-glow)}
+.spec{margin-top:26px;border-top:1px solid var(--line)}
+.spec-row{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:11px 2px;border-bottom:1px solid var(--line);font-size:13.5px}
+.spec-row .k{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.spec-row .v{color:var(--shell-dim)}
+.spec-row .v a{color:var(--glow)}
 
-/* flow */
-.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:18px;align-items:stretch;margin-top:30px}
-.beat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px}
-.beat .n{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-.beat h3{font-family:var(--disp);font-weight:700;font-size:19px;margin-bottom:8px}
-.beat p{font-size:14.5px;color:var(--muted)}
-.beat p b{color:var(--ink);font-weight:600}
-.flow .arrow{align-self:center;font-family:var(--mono);color:var(--muted);font-size:18px}
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line)}
+footer .foot-row{max-width:1120px;margin:0 auto;padding:30px 28px 44px;display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+footer a{color:var(--shell-dim)}
+.foot-shapes{letter-spacing:.4em}
+.foot-shapes span:nth-child(1){color:var(--tri)}
+.foot-shapes span:nth-child(2){color:var(--cir)}
+.foot-shapes span:nth-child(3){color:var(--cro)}
+.foot-shapes span:nth-child(4){color:var(--squ)}
 
-/* extras */
-.extras-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
-.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px}
-.card h3{font-family:var(--disp);font-weight:700;font-size:16px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.card h3 .sw{flex:none;width:10px;height:10px;border-radius:3px}
-.card p{font-size:14px;color:var(--muted)}
-.card p a{color:var(--ink)}
-
-/* footer */
-footer{padding:40px 0 56px;border-top:1px solid var(--line)}
-.foot-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
-.foot-row a{color:var(--ink)}
-.foot-row .shapes{letter-spacing:.4em}
-.foot-row .shapes span:nth-child(1){color:var(--tri)}
-.foot-row .shapes span:nth-child(2){color:var(--cir)}
-.foot-row .shapes span:nth-child(3){color:var(--cro)}
-.foot-row .shapes span:nth-child(4){color:var(--squ)}
-
-@media(max-width:820px){
-  .qs-grid{grid-template-columns:1fr}
-  .flow{grid-template-columns:1fr}
-  .flow .arrow{transform:rotate(90deg);justify-self:center}
-  .extras-grid{grid-template-columns:1fr}
-  .dark{margin:0;border-radius:0}
-  section{padding:48px 0}
+@media(max-width:880px){
+  .hero-grid{grid-template-columns:1fr;gap:24px}
+  .hero .sub{max-width:none}
+  .chapter{grid-template-columns:1fr;gap:26px;padding-top:48px}
+  .chapter:nth-child(odd) .ch-visual{order:0}
+  .setup-grid{grid-template-columns:1fr}
+  .chapters{padding:60px 0}
+  .setup{padding:60px 0 52px}
 }
 @media(prefers-reduced-motion:reduce){
-  .rec .lightbar,.rec .vu rect,.readout.listening .dot,.caret{animation:none}
+  .lightbar,.rec .lightbar,.rec .vu rect,.readout.listening .dot,.caret,.marq-inner,
+  .trig-arm,.trig-mic,.trig-wave,.bar-blue i,.bar-violet i,.rumble-grip,.ripple,
+  .stick-cursor,.scroll-lines{animation:none}
+  .ripple{opacity:.5;transform:scale(1.1)}
   html{scroll-behavior:auto}
 }
 </style>
@@ -166,238 +209,326 @@ footer{padding:40px 0 56px;border-top:1px solid var(--line)}
 
 <header class="wrap">
   <div class="header-row">
-    <div class="brand"><span class="g">&#9651;</span> Vibe Controller <span style="color:var(--muted)">/ macOS &times; DualSense</span></div>
-    <a class="gh-link" href="https://github.com/SunkyYang/vibe-controller">GitHub &nearr;</a>
+    <div class="brand"><span class="lb-dot"></span>VIBE CONTROLLER</div>
+    <a class="gh-link" href="https://github.com/SunkyYang/vibe-controller"><span class="gh-full">github.com/SunkyYang/vibe-controller</span><span class="gh-short">GitHub</span> &nearr;</a>
   </div>
 </header>
 
 <div class="hero wrap">
-  <h1>Pull <span class="kc">R2</span>. Say the thing.<br>It lands at your cursor.</h1>
-  <p>A PS5 DualSense as a <b>push-to-talk voice input device</b> for macOS. The trigger toggles dictation, the light bar breathes while you speak, haptics confirm. ~200 lines of Swift in your menu bar.</p>
-</div>
-
-<div class="stage wrap">
-  <div class="pad-wrap" id="pad">
-    <svg viewBox="0 0 760 470" role="img" aria-label="Interactive DualSense controller diagram. Hover or focus each control to read its mapping.">
-      <defs>
-        <linearGradient id="bodyg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#FCFCFD"/>
-          <stop offset="1" stop-color="#E7E9EE"/>
-        </linearGradient>
-      </defs>
-
-      <!-- triggers & bumpers -->
-      <g class="ctl" id="z-l2" tabindex="0" data-name="L2" data-action="modifier — hold for combos; light bar turns amber">
-        <path class="face" d="M150 84 q10 -34 52 -30 q40 4 44 30 l-4 18 h-88 z" fill="#DDDFE5" stroke="#C6C9D1" stroke-width="1.5"/>
-        <rect class="hit" x="140" y="46" width="120" height="56" rx="14"/>
-      </g>
-      <g class="ctl" id="z-r2" tabindex="0" role="button" aria-label="R2 — press and hold to simulate dictation" data-name="R2" data-action="toggle dictation — hold me!">
-        <path class="face" d="M610 84 q-10 -34 -52 -30 q-40 4 -44 30 l4 18 h88 z" fill="#DDDFE5" stroke="#C6C9D1" stroke-width="1.5"/>
-        <rect class="hit" x="500" y="46" width="120" height="56" rx="14"/>
-      </g>
-      <g class="ctl" id="z-l1" tabindex="0" data-name="L1" data-action="Cmd+Shift+&#8592; — previous tab">
-        <rect class="face" x="146" y="96" width="102" height="18" rx="9" fill="#C9CCD4" stroke="#B4B8C2" stroke-width="1.5"/>
-        <rect class="hit" x="140" y="92" width="114" height="26" rx="9"/>
-      </g>
-      <g class="ctl" id="z-r1" tabindex="0" data-name="R1" data-action="Cmd+Shift+&#8594; — next tab">
-        <rect class="face" x="512" y="96" width="102" height="18" rx="9" fill="#C9CCD4" stroke="#B4B8C2" stroke-width="1.5"/>
-        <rect class="hit" x="506" y="92" width="114" height="26" rx="9"/>
-      </g>
-
-      <!-- body -->
-      <path d="M380 118
-               C 300 118 250 112 216 118
-               C 172 126 148 158 138 196
-               C 126 242 112 310 110 356
-               C 108 404 128 436 164 442
-               C 200 448 224 424 244 388
-               C 262 356 276 336 306 330
-               C 336 324 360 322 380 322
-               C 400 322 424 324 454 330
-               C 484 336 498 356 516 388
-               C 536 424 560 448 596 442
-               C 632 436 652 404 650 356
-               C 648 310 634 242 622 196
-               C 612 158 588 126 544 118
-               C 510 112 460 118 380 118 Z"
-            fill="url(#bodyg)" stroke="#C6C9D1" stroke-width="2"/>
-
-      <!-- touchpad -->
-      <g class="ctl" id="z-pad" tabindex="0" data-name="Touchpad" data-action="click = mouse right click">
-        <path class="face" d="M310 132 h140 a18 18 0 0 1 18 18 v52 a18 18 0 0 1 -18 18 h-140 a18 18 0 0 1 -18 -18 v-52 a18 18 0 0 1 18 -18 z" fill="var(--core)" stroke="#2A2D36" stroke-width="1.5"/>
-        <rect class="hit" x="292" y="132" width="176" height="88" rx="18"/>
-      </g>
-
-      <!-- light bar: two strips flanking the touchpad -->
-      <path class="lightbar" d="M287 138 q-8 34 0 76" fill="none" stroke-width="5" stroke-linecap="round"/>
-      <path class="lightbar" d="M473 138 q8 34 0 76" fill="none" stroke-width="5" stroke-linecap="round"/>
-
-      <!-- voice-level bars (visible while recording) -->
-      <g class="vu" aria-hidden="true">
-        <g transform="translate(322,176)">
-          <rect x="0"  y="-18" width="7" height="36" rx="3.5" style="transform-origin:3.5px 0"/>
-          <rect x="16" y="-18" width="7" height="36" rx="3.5" style="transform-origin:19.5px 0"/>
-          <rect x="32" y="-18" width="7" height="36" rx="3.5" style="transform-origin:35.5px 0"/>
-          <rect x="48" y="-18" width="7" height="36" rx="3.5" style="transform-origin:51.5px 0"/>
-          <rect x="64" y="-18" width="7" height="36" rx="3.5" style="transform-origin:67.5px 0"/>
-          <rect x="80" y="-18" width="7" height="36" rx="3.5" style="transform-origin:83.5px 0"/>
-          <rect x="96" y="-18" width="7" height="36" rx="3.5" style="transform-origin:99.5px 0"/>
-          <rect x="112" y="-18" width="7" height="36" rx="3.5" style="transform-origin:115.5px 0"/>
-        </g>
-      </g>
-
-      <!-- create / options -->
-      <g class="ctl" id="z-create" tabindex="0" data-name="Create" data-action="Cmd+Shift+4 — screenshot">
-        <rect class="face" x="256" y="140" width="12" height="26" rx="6" fill="#D5D8DE" stroke="#BEC2CB" stroke-width="1.5"/>
-        <rect class="hit" x="246" y="132" width="32" height="42" rx="8"/>
-      </g>
-      <g class="ctl" id="z-options" tabindex="0" data-name="Options" data-action="Tab">
-        <rect class="face" x="492" y="140" width="12" height="26" rx="6" fill="#D5D8DE" stroke="#BEC2CB" stroke-width="1.5"/>
-        <rect class="hit" x="482" y="132" width="32" height="42" rx="8"/>
-      </g>
-
-      <!-- d-pad -->
-      <g class="ctl" id="z-dpad" tabindex="0" data-name="D-Pad" data-action="arrow keys, with auto-repeat">
-        <path class="face" d="M212 172 h28 a6 6 0 0 1 6 6 v22 h22 a6 6 0 0 1 6 6 v28 a6 6 0 0 1 -6 6 h-22 v22 a6 6 0 0 1 -6 6 h-28 a6 6 0 0 1 -6 -6 v-22 h-22 a6 6 0 0 1 -6 -6 v-28 a6 6 0 0 1 6 -6 h22 v-22 a6 6 0 0 1 6 -6 z" fill="#D5D8DE" stroke="#BEC2CB" stroke-width="1.5"/>
-        <rect class="hit" x="172" y="166" width="112" height="112" rx="16"/>
-      </g>
-
-      <!-- face buttons -->
-      <g class="ctl" id="z-tri" tabindex="0" data-name="Triangle" data-action="launch Ghostty + run claude (long press: --resume)">
-        <circle class="face" cx="534" cy="188" r="18" fill="#fff" stroke="#C6C9D1" stroke-width="1.5"/>
-        <path d="M534 179 l9.5 16 h-19 z" fill="none" stroke="var(--tri)" stroke-width="2.4" stroke-linejoin="round"/>
-        <circle class="hit" cx="534" cy="188" r="24"/>
-      </g>
-      <g class="ctl" id="z-cir" tabindex="0" data-name="Circle" data-action="Esc">
-        <circle class="face" cx="572" cy="226" r="18" fill="#fff" stroke="#C6C9D1" stroke-width="1.5"/>
-        <circle cx="572" cy="226" r="8.5" fill="none" stroke="var(--cir)" stroke-width="2.4"/>
-        <circle class="hit" cx="572" cy="226" r="24"/>
-      </g>
-      <g class="ctl" id="z-cross" tabindex="0" data-name="Cross" data-action="Enter">
-        <circle class="face" cx="534" cy="264" r="18" fill="#fff" stroke="#C6C9D1" stroke-width="1.5"/>
-        <path d="M527 257 l14 14 M541 257 l-14 14" stroke="var(--cro)" stroke-width="2.4" stroke-linecap="round"/>
-        <circle class="hit" cx="534" cy="264" r="24"/>
-      </g>
-      <g class="ctl" id="z-squ" tabindex="0" data-name="Square" data-action="mouse left click + drag">
-        <circle class="face" cx="496" cy="226" r="18" fill="#fff" stroke="#C6C9D1" stroke-width="1.5"/>
-        <rect x="489" y="219" width="14" height="14" rx="2" fill="none" stroke="var(--squ)" stroke-width="2.4"/>
-        <circle class="hit" cx="496" cy="226" r="24"/>
-      </g>
-
-      <!-- sticks -->
-      <g class="ctl" id="z-lstick" tabindex="0" data-name="L3 / left stick" data-action="mouse cursor — click to pop the on-screen button map">
-        <circle class="face" cx="298" cy="296" r="37" fill="#DDDFE5" stroke="#C6C9D1" stroke-width="1.5"/>
-        <circle cx="298" cy="296" r="24" fill="#CDD0D8"/>
-        <circle cx="298" cy="296" r="24" fill="none" stroke="#B4B8C2" stroke-width="1.5"/>
-        <circle class="hit" cx="298" cy="296" r="42"/>
-      </g>
-      <g class="ctl" id="z-rstick" tabindex="0" data-name="R3 / right stick" data-action="scroll wheel — click = Cmd+V">
-        <circle class="face" cx="462" cy="296" r="37" fill="#DDDFE5" stroke="#C6C9D1" stroke-width="1.5"/>
-        <circle cx="462" cy="296" r="24" fill="#CDD0D8"/>
-        <circle cx="462" cy="296" r="24" fill="none" stroke="#B4B8C2" stroke-width="1.5"/>
-        <circle class="hit" cx="462" cy="296" r="42"/>
-      </g>
-
-      <!-- PS button -->
-      <g class="ctl" id="z-ps" tabindex="0" data-name="PS" data-action="Mission Control">
-        <path class="face" d="M380 252 l13 8 v16 l-13 8 l-13 -8 v-16 z" fill="#D5D8DE" stroke="#BEC2CB" stroke-width="1.5"/>
-        <circle class="hit" cx="380" cy="264" r="20"/>
-      </g>
-    </svg>
-
-    <div class="readout" id="readout" aria-live="polite">
-      <span class="tag" id="ro-tag">L3&nbsp;HUD</span>
-      <span class="txt" id="ro-txt">Hover a control to read its mapping &mdash; or hold <span class="b">R2</span> and see what happens.</span>
+  <div class="hero-grid">
+    <div>
+      <h1>Your DualSense is now a <span class="blue">microphone.</span></h1>
+      <p class="sub">Pull <b>R2</b>, talk, pull again — the words land wherever your cursor is. A free, open-source menu bar app that turns a PS5 controller into a <b>push-to-talk voice input device</b> for macOS.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/SunkyYang/vibe-controller">View on GitHub &nearr;</a>
+        <span class="free-note">free &amp; open source &middot; <span class="mit">MIT</span> &middot; ~200 lines of Swift</span>
+      </div>
     </div>
-    <p class="hint" style="margin-top:14px">hover the controls &middot; hold <span class="k">R2</span> &middot; this is the app&rsquo;s <span class="k">L3</span> HUD, on the web</p>
+
+    <div class="pad-wrap" id="pad">
+      <svg viewBox="0 0 760 470" role="img" aria-label="Interactive DualSense controller. Hover or focus each control to read its mapping; hold R2 to simulate dictation.">
+        <defs>
+          <linearGradient id="bodyg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#F4F5F8"/>
+            <stop offset="1" stop-color="#D6D9E0"/>
+          </linearGradient>
+          <radialGradient id="floorglow" cx=".5" cy=".5" r=".5">
+            <stop offset="0" stop-color="#4D8DFF" stop-opacity=".14"/>
+            <stop offset="1" stop-color="#4D8DFF" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <ellipse cx="380" cy="290" rx="330" ry="180" fill="url(#floorglow)"/>
+
+        <!-- triggers & bumpers -->
+        <g class="ctl" id="z-l2" tabindex="0" data-name="L2" data-action="modifier — hold for combos; light bar turns amber">
+          <path class="face" d="M150 84 q10 -34 52 -30 q40 4 44 30 l-4 18 h-88 z" fill="#2A2D36" stroke="#3A3E4A" stroke-width="1.5"/>
+          <rect class="hit" x="140" y="46" width="120" height="56" rx="14"/>
+        </g>
+        <g class="ctl" id="z-r2" tabindex="0" role="button" aria-label="R2 — press and hold to simulate dictation" data-name="R2" data-action="toggle dictation — hold me!">
+          <path class="face" d="M610 84 q-10 -34 -52 -30 q-40 4 -44 30 l4 18 h88 z" fill="#2A2D36" stroke="#3A3E4A" stroke-width="1.5"/>
+          <rect class="hit" x="500" y="46" width="120" height="56" rx="14"/>
+        </g>
+        <g class="ctl" id="z-l1" tabindex="0" data-name="L1" data-action="Cmd+Shift+&#8592; — previous tab">
+          <rect class="face" x="146" y="96" width="102" height="18" rx="9" fill="#22242C" stroke="#3A3E4A" stroke-width="1.5"/>
+          <rect class="hit" x="140" y="92" width="114" height="26" rx="9"/>
+        </g>
+        <g class="ctl" id="z-r1" tabindex="0" data-name="R1" data-action="Cmd+Shift+&#8594; — next tab">
+          <rect class="face" x="512" y="96" width="102" height="18" rx="9" fill="#22242C" stroke="#3A3E4A" stroke-width="1.5"/>
+          <rect class="hit" x="506" y="92" width="114" height="26" rx="9"/>
+        </g>
+
+        <!-- body -->
+        <path d="M380 118
+                 C 300 118 250 112 216 118
+                 C 172 126 148 158 138 196
+                 C 126 242 112 310 110 356
+                 C 108 404 128 436 164 442
+                 C 200 448 224 424 244 388
+                 C 262 356 276 336 306 330
+                 C 336 324 360 322 380 322
+                 C 400 322 424 324 454 330
+                 C 484 336 498 356 516 388
+                 C 536 424 560 448 596 442
+                 C 632 436 652 404 650 356
+                 C 648 310 634 242 622 196
+                 C 612 158 588 126 544 118
+                 C 510 112 460 118 380 118 Z"
+              fill="url(#bodyg)" stroke="#A9ADB9" stroke-width="2"/>
+
+        <!-- touchpad -->
+        <g class="ctl" id="z-pad" tabindex="0" data-name="Touchpad" data-action="click = mouse right click">
+          <path class="face" d="M310 132 h140 a18 18 0 0 1 18 18 v52 a18 18 0 0 1 -18 18 h-140 a18 18 0 0 1 -18 -18 v-52 a18 18 0 0 1 18 -18 z" fill="#181A20" stroke="#2E323D" stroke-width="1.5"/>
+          <rect class="hit" x="292" y="132" width="176" height="88" rx="18"/>
+        </g>
+
+        <!-- light bar -->
+        <path class="lightbar" d="M287 138 q-8 34 0 76" fill="none" stroke-width="5" stroke-linecap="round"/>
+        <path class="lightbar" d="M473 138 q8 34 0 76" fill="none" stroke-width="5" stroke-linecap="round"/>
+
+        <!-- voice-level bars -->
+        <g class="vu" aria-hidden="true">
+          <g transform="translate(322,176)">
+            <rect x="0"  y="-18" width="7" height="36" rx="3.5" style="transform-origin:3.5px 0"/>
+            <rect x="16" y="-18" width="7" height="36" rx="3.5" style="transform-origin:19.5px 0"/>
+            <rect x="32" y="-18" width="7" height="36" rx="3.5" style="transform-origin:35.5px 0"/>
+            <rect x="48" y="-18" width="7" height="36" rx="3.5" style="transform-origin:51.5px 0"/>
+            <rect x="64" y="-18" width="7" height="36" rx="3.5" style="transform-origin:67.5px 0"/>
+            <rect x="80" y="-18" width="7" height="36" rx="3.5" style="transform-origin:83.5px 0"/>
+            <rect x="96" y="-18" width="7" height="36" rx="3.5" style="transform-origin:99.5px 0"/>
+            <rect x="112" y="-18" width="7" height="36" rx="3.5" style="transform-origin:115.5px 0"/>
+          </g>
+        </g>
+
+        <!-- create / options -->
+        <g class="ctl" id="z-create" tabindex="0" data-name="Create" data-action="Cmd+Shift+4 — screenshot">
+          <rect class="face" x="256" y="140" width="12" height="26" rx="6" fill="#3A3E4A" stroke="#4A4E5C" stroke-width="1.5"/>
+          <rect class="hit" x="246" y="132" width="32" height="42" rx="8"/>
+        </g>
+        <g class="ctl" id="z-options" tabindex="0" data-name="Options" data-action="Tab">
+          <rect class="face" x="492" y="140" width="12" height="26" rx="6" fill="#3A3E4A" stroke="#4A4E5C" stroke-width="1.5"/>
+          <rect class="hit" x="482" y="132" width="32" height="42" rx="8"/>
+        </g>
+
+        <!-- d-pad -->
+        <g class="ctl" id="z-dpad" tabindex="0" data-name="D-Pad" data-action="arrow keys, with auto-repeat">
+          <path class="face" d="M212 172 h28 a6 6 0 0 1 6 6 v22 h22 a6 6 0 0 1 6 6 v28 a6 6 0 0 1 -6 6 h-22 v22 a6 6 0 0 1 -6 6 h-28 a6 6 0 0 1 -6 -6 v-22 h-22 a6 6 0 0 1 -6 -6 v-28 a6 6 0 0 1 6 -6 h22 v-22 a6 6 0 0 1 6 -6 z" fill="#22242C" stroke="#3A3E4A" stroke-width="1.5"/>
+          <rect class="hit" x="172" y="166" width="112" height="112" rx="16"/>
+        </g>
+
+        <!-- face buttons -->
+        <g class="ctl" id="z-tri" tabindex="0" data-name="Triangle" data-action="launch Ghostty + run claude (long press: --resume)">
+          <circle class="face" cx="534" cy="188" r="18" fill="#22242C" stroke="#3A3E4A" stroke-width="1.5"/>
+          <path d="M534 179 l9.5 16 h-19 z" fill="none" stroke="var(--tri)" stroke-width="2.4" stroke-linejoin="round"/>
+          <circle class="hit" cx="534" cy="188" r="24"/>
+        </g>
+        <g class="ctl" id="z-cir" tabindex="0" data-name="Circle" data-action="Esc">
+          <circle class="face" cx="572" cy="226" r="18" fill="#22242C" stroke="#3A3E4A" stroke-width="1.5"/>
+          <circle cx="572" cy="226" r="8.5" fill="none" stroke="var(--cir)" stroke-width="2.4"/>
+          <circle class="hit" cx="572" cy="226" r="24"/>
+        </g>
+        <g class="ctl" id="z-cross" tabindex="0" data-name="Cross" data-action="Enter">
+          <circle class="face" cx="534" cy="264" r="18" fill="#22242C" stroke="#3A3E4A" stroke-width="1.5"/>
+          <path d="M527 257 l14 14 M541 257 l-14 14" stroke="var(--cro)" stroke-width="2.4" stroke-linecap="round"/>
+          <circle class="hit" cx="534" cy="264" r="24"/>
+        </g>
+        <g class="ctl" id="z-squ" tabindex="0" data-name="Square" data-action="mouse left click + drag">
+          <circle class="face" cx="496" cy="226" r="18" fill="#22242C" stroke="#3A3E4A" stroke-width="1.5"/>
+          <rect x="489" y="219" width="14" height="14" rx="2" fill="none" stroke="var(--squ)" stroke-width="2.4"/>
+          <circle class="hit" cx="496" cy="226" r="24"/>
+        </g>
+
+        <!-- sticks -->
+        <g class="ctl" id="z-lstick" tabindex="0" data-name="L3 / left stick" data-action="mouse cursor — click to pop the on-screen button map">
+          <circle class="face" cx="298" cy="296" r="37" fill="#22242C" stroke="#3A3E4A" stroke-width="1.5"/>
+          <circle cx="298" cy="296" r="24" fill="#2E323D"/>
+          <circle cx="298" cy="296" r="24" fill="none" stroke="#454A58" stroke-width="1.5"/>
+          <circle class="hit" cx="298" cy="296" r="42"/>
+        </g>
+        <g class="ctl" id="z-rstick" tabindex="0" data-name="R3 / right stick" data-action="scroll wheel — click = Cmd+V">
+          <circle class="face" cx="462" cy="296" r="37" fill="#22242C" stroke="#3A3E4A" stroke-width="1.5"/>
+          <circle cx="462" cy="296" r="24" fill="#2E323D"/>
+          <circle cx="462" cy="296" r="24" fill="none" stroke="#454A58" stroke-width="1.5"/>
+          <circle class="hit" cx="462" cy="296" r="42"/>
+        </g>
+
+        <!-- PS button -->
+        <g class="ctl" id="z-ps" tabindex="0" data-name="PS" data-action="Mission Control">
+          <path class="face" d="M380 252 l13 8 v16 l-13 8 l-13 -8 v-16 z" fill="#2E323D" stroke="#454A58" stroke-width="1.5"/>
+          <circle class="hit" cx="380" cy="264" r="20"/>
+        </g>
+      </svg>
+
+      <div class="readout" id="readout" aria-live="polite">
+        <span class="tag" id="ro-tag">L3&nbsp;HUD</span>
+        <span class="txt" id="ro-txt">Hover a control to read its mapping &mdash; or hold <span class="b">R2</span> and see what happens.</span>
+      </div>
+      <p class="hint">hover the controls &middot; hold <span class="k">R2</span> &middot; this is the app&rsquo;s <span class="k">L3</span> button map, on the web</p>
+    </div>
+  </div>
+
+  <div class="marq" aria-hidden="true">
+    <div class="marq-inner">
+      <span><span class="g-tri">&#9651;</span> pull &nbsp; <span class="g-cir">&#9675;</span> talk &nbsp; <span class="g-cro">&#10005;</span> land &nbsp; <span class="g-squ">&#9633;</span> repeat &nbsp;&mdash;&nbsp; </span><span><span class="g-tri">&#9651;</span> pull &nbsp; <span class="g-cir">&#9675;</span> talk &nbsp; <span class="g-cro">&#10005;</span> land &nbsp; <span class="g-squ">&#9633;</span> repeat &nbsp;&mdash;&nbsp; </span><span><span class="g-tri">&#9651;</span> pull &nbsp; <span class="g-cir">&#9675;</span> talk &nbsp; <span class="g-cro">&#10005;</span> land &nbsp; <span class="g-squ">&#9633;</span> repeat &nbsp;&mdash;&nbsp; </span><span><span class="g-tri">&#9651;</span> pull &nbsp; <span class="g-cir">&#9675;</span> talk &nbsp; <span class="g-cro">&#10005;</span> land &nbsp; <span class="g-squ">&#9633;</span> repeat &nbsp;&mdash;&nbsp; </span>
+    </div>
   </div>
 </div>
 
-<!-- quick start -->
-<section>
-  <div class="dark">
-    <div class="inner">
-      <div class="eyebrow"><span class="g" style="color:var(--cro)">&#10005;</span> Quick start</div>
-      <div class="qs-grid">
-        <div class="qs-copy">
-          <h2>Clone, build, pull the trigger.</h2>
-          <p>A game-controller icon appears in the menu bar. Plug in the DualSense &mdash; or pair over Bluetooth with a long press on <b style="color:#fff">PS + Create</b> &mdash; then press R2, dictate, press R2 again.</p>
-          <p class="req">Requires macOS 11.3+, Swift 5.9+, and <a href="https://github.com/openwhispr/openwhispr">OpenWhispr</a> on <span style="color:#E9EAEF">Option+`</span> in tap mode.<br>Autostart &amp; Accessibility setup: <a href="https://github.com/SunkyYang/vibe-controller/blob/main/docs/install.md">docs/install.md</a></p>
-        </div>
-        <div class="codebox" id="codebox">
-          <button class="copy-btn" id="copybtn" aria-label="Copy commands">copy</button>
-          <div><span class="c">$</span> git clone https://github.com/SunkyYang/vibe-controller.git</div>
-          <div><span class="c">$</span> cd vibe-controller</div>
-          <div><span class="c">$</span> swift build -c release</div>
-          <div><span class="c">$</span> ./.build/release/VibeController</div>
-        </div>
+<!-- chapters -->
+<div class="chapters">
+  <div class="ch-head">
+    <div class="kicker">Four parts, one habit</div>
+    <h2>A game controller for dictation. Seriously? &mdash; Seriously.</h2>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-copy">
+      <div class="ch-mark"><span style="color:var(--tri)">&#9651;</span> 01 &middot; The Trigger</div>
+      <h3>An analog trigger is a perfect talk button.</h3>
+      <p>The controller was already in arm&rsquo;s reach, with a spring-loaded trigger your index finger knows by muscle memory. Pull <b>R2</b> and <a href="https://github.com/openwhispr/openwhispr" style="color:var(--ink)">OpenWhispr</a> starts listening; pull it again and the transcribed words are injected <b>wherever your cursor sits</b>.</p>
+      <p>Debounced with hysteresis, so a lazy half-pull never double-fires.</p>
+    </div>
+    <div class="ch-visual">
+      <div>
+        <svg viewBox="0 0 300 190" aria-hidden="true">
+          <!-- shoulder housing, side view -->
+          <path d="M66 88 q4 -26 34 -30 l120 -6 q46 0 52 34 l6 44 q2 26 -26 28 l-150 6 q-34 0 -36 -28 z" fill="#EDEEF1" stroke="#C9CCD4" stroke-width="2"/>
+          <!-- R2 trigger paddle, pivots at its base -->
+          <g class="trig-arm">
+            <path d="M94 84 q-4 -44 34 -54 l58 -8 q22 -2 24 16 q2 16 -20 24 l-64 18 q-28 8 -32 4 z" fill="#DADCE3" stroke="#AFB3BE" stroke-width="2"/>
+            <text x="136" y="52" font-family="ui-monospace,Menlo,monospace" font-size="13" font-weight="bold" fill="#5D6270">R2</text>
+          </g>
+          <!-- pull direction -->
+          <path d="M236 30 q18 14 20 36" fill="none" stroke="#B9BCC6" stroke-width="2" stroke-dasharray="4 5" stroke-linecap="round"/>
+          <path d="M251 60 l5 8 l-9 1 z" fill="#B9BCC6"/>
+          <!-- mic indicator -->
+          <circle class="trig-mic" cx="222" cy="122" r="9"/>
+          <g class="trig-wave" fill="none" stroke-width="2" stroke-linecap="round">
+            <path d="M240 112 q8 10 0 20"/>
+            <path d="M248 106 q13 16 0 32"/>
+          </g>
+          <text x="212" y="152" font-family="ui-monospace,Menlo,monospace" font-size="10" fill="#5D6270">mic</text>
+        </svg>
+        <div class="ch-cap">R2 pulled &rarr; dictation on &middot; pulled again &rarr; text injected</div>
       </div>
     </div>
   </div>
-</section>
 
-<!-- how it works -->
-<section class="wrap" style="padding-top:16px">
-  <div class="eyebrow"><span class="g" style="color:var(--cir)">&#9675;</span> From trigger to text</div>
-  <h2>The controller was already in arm&rsquo;s reach.</h2>
-  <p style="color:var(--muted);max-width:60ch">OpenWhispr already handles audio, transcription, and text injection. All that was missing was a way to turn a perfectly good analog trigger into the shortcut it listens for. That&rsquo;s the whole app &mdash; the light show comes free.</p>
-  <div class="flow">
-    <div class="beat">
-      <div class="n">Pull</div>
-      <h3>R2 goes down</h3>
-      <p>A soft haptic tick confirms. The light bar starts <b>breathing blue</b> and rises with your voice level.</p>
+  <div class="chapter">
+    <div class="ch-copy">
+      <div class="ch-mark"><span style="color:var(--cir)">&#9675;</span> 02 &middot; The Light</div>
+      <h3>The light bar is the status line.</h3>
+      <p>Breathes <b>blue</b> while recording and flares with your voice level. Turns <b>amber</b> while L2 is held, so you always know which layer you&rsquo;re on. With the optional <a href="https://github.com/SunkyYang/vibe-controller/blob/main/docs/claude-code-integration.md" style="color:var(--ink)">Claude Code hook</a>, it even mirrors what Claude is doing.</p>
+      <p>You stop checking the screen surprisingly fast.</p>
     </div>
-    <div class="arrow">&rarr;</div>
-    <div class="beat">
-      <div class="n">Speak</div>
-      <h3>OpenWhispr listens</h3>
-      <p>The app fires the dictation shortcut. Whisper transcribes locally &mdash; the controller is just the <b>talk button</b>.</p>
+    <div class="ch-visual">
+      <div class="bar-demo">
+        <div class="bar-row">
+          <div class="bar-strip bar-blue"><i></i></div>
+          <div class="bar-lab"><b>Breathing blue</b>dictation is live, brightness follows your voice</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-strip bar-amber"><i></i></div>
+          <div class="bar-lab"><b>Amber</b>L2 held &mdash; combo layer armed</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-strip bar-violet"><i></i></div>
+          <div class="bar-lab"><b>Violet pulse</b>Claude Code is running a tool (optional hook)</div>
+        </div>
+        <div class="ch-cap">no HUD, no glancing &mdash; state lives on the hardware</div>
+      </div>
     </div>
-    <div class="arrow">&rarr;</div>
-    <div class="beat">
-      <div class="n">Land</div>
-      <h3>Text at your cursor</h3>
-      <p>Release R2. A double-tap haptic signs off and the words are injected <b>wherever you were typing</b>.</p>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-copy">
+      <div class="ch-mark"><span style="color:var(--cro)">&#10005;</span> 03 &middot; The Rumble</div>
+      <h3>Haptics close the loop.</h3>
+      <p>A soft tick when recording starts, a double-tap when it stops, distinct patterns for mode changes and long presses. Your hand learns the vocabulary in a day &mdash; <b>confirmation without looking</b>, which is the whole point of dictating from the couch.</p>
+    </div>
+    <div class="ch-visual">
+      <div>
+        <svg viewBox="0 0 300 190" aria-hidden="true">
+          <g class="rumble-grip">
+            <g transform="translate(-11,-8) scale(0.42)">
+              <path d="M380 118 C 300 118 250 112 216 118 C 172 126 148 158 138 196 C 126 242 112 310 110 356 C 108 404 128 436 164 442 C 200 448 224 424 244 388 C 262 356 276 336 306 330 C 336 324 360 322 380 322 C 400 322 424 324 454 330 C 484 336 498 356 516 388 C 536 424 560 448 596 442 C 632 436 652 404 650 356 C 648 310 634 242 622 196 C 612 158 588 126 544 118 C 510 112 460 118 380 118 Z" fill="#EDEEF1" stroke="#C9CCD4" stroke-width="4"/>
+              <rect x="292" y="132" width="176" height="88" rx="18" fill="#DADCE3"/>
+              <circle cx="298" cy="296" r="34" fill="#DADCE3"/>
+              <circle cx="462" cy="296" r="34" fill="#DADCE3"/>
+            </g>
+          </g>
+          <g class="rip-l" style="transform-origin:57px 152px">
+            <circle class="ripple" cx="57" cy="152" r="26"/>
+            <circle class="ripple r2" cx="57" cy="152" r="34"/>
+          </g>
+          <g class="rip-r" style="transform-origin:243px 152px">
+            <circle class="ripple r2" cx="243" cy="152" r="26"/>
+            <circle class="ripple r3" cx="243" cy="152" r="34"/>
+          </g>
+        </svg>
+        <div class="ch-cap">tick &middot; double-tap &middot; heavy thump &mdash; each event has a signature</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-copy">
+      <div class="ch-mark"><span style="color:var(--squ)">&#9633;</span> 04 &middot; The Sticks</div>
+      <h3>Sticks are a mouse. The couch is a desk.</h3>
+      <p>Left stick glides the cursor, right stick scrolls, <b>&#9633;</b> clicks and drags, the touchpad right-clicks. Press <b>L3</b> any time to pop a click-through HUD of every mapping &mdash; the same one living at the top of this page.</p>
+    </div>
+    <div class="ch-visual">
+      <div>
+        <svg viewBox="0 0 300 190" aria-hidden="true">
+          <rect x="20" y="14" width="260" height="162" rx="12" fill="#F7F8FA" stroke="#D8DAE1" stroke-width="2"/>
+          <rect x="20" y="14" width="260" height="26" rx="12" fill="#EDEEF1"/>
+          <circle cx="38" cy="27" r="4" fill="#FF6470"/><circle cx="52" cy="27" r="4" fill="#FFB454"/><circle cx="66" cy="27" r="4" fill="#2FD9A2"/>
+          <g class="scroll-lines">
+            <line x1="44" y1="66" x2="180" y2="66"/>
+            <line x1="44" y1="88" x2="236" y2="88"/>
+            <line x1="44" y1="110" x2="204" y2="110"/>
+            <line x1="44" y1="132" x2="222" y2="132"/>
+            <line x1="44" y1="154" x2="150" y2="154"/>
+          </g>
+          <g class="stick-cursor">
+            <path d="M46 52 l0 16 4.5 -4.5 3 7 3.5 -1.5 -3 -7 6.5 -0.5 z" fill="#15161B"/>
+          </g>
+        </svg>
+        <div class="ch-cap">left stick &rarr; cursor &middot; right stick &rarr; scroll &middot; &#9633; &rarr; click</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- setup -->
+<section class="setup wrap">
+  <div class="setup-grid">
+    <div>
+      <div class="kicker">The Setup</div>
+      <h2>Clone, build, pull the trigger.</h2>
+      <p>A game-controller icon appears in the menu bar. Plug in the DualSense &mdash; or pair over Bluetooth with a long press on <b>PS + Create</b> &mdash; then press R2, dictate, press R2 again.</p>
+      <div class="spec">
+        <div class="spec-row"><span class="k">Requires</span><span class="v">macOS 11.3+ &middot; Swift 5.9+ &middot; a PS5 DualSense (USB or Bluetooth)</span></div>
+        <div class="spec-row"><span class="k">Companion</span><span class="v"><a href="https://github.com/openwhispr/openwhispr">OpenWhispr</a> on <span style="font-family:var(--mono)">Option+`</span> in tap mode &mdash; does the actual transcription</span></div>
+        <div class="spec-row"><span class="k">Autostart</span><span class="v">optional LaunchAgent &mdash; see <a href="https://github.com/SunkyYang/vibe-controller/blob/main/docs/install.md">docs/install.md</a></span></div>
+        <div class="spec-row"><span class="k">Footprint</span><span class="v">~200 lines of Swift &middot; menu bar only, no Dock icon, no window</span></div>
+        <div class="spec-row"><span class="k">License</span><span class="v">MIT &middot; <a href="https://github.com/SunkyYang/vibe-controller">source on GitHub</a></span></div>
+      </div>
+    </div>
+    <div class="codebox" id="codebox">
+      <button class="copy-btn" id="copybtn" aria-label="Copy commands">copy</button>
+      <div><span class="c">$</span> git clone https://github.com/SunkyYang/vibe-controller.git</div>
+      <div><span class="c">$</span> cd vibe-controller</div>
+      <div><span class="c">$</span> swift build -c release</div>
+      <div><span class="c">$</span> ./.build/release/VibeController</div>
     </div>
   </div>
 </section>
 
-<!-- extras -->
-<section class="wrap" style="padding-top:24px">
-  <div class="eyebrow"><span class="g" style="color:var(--squ)">&#9633;</span> The fun parts</div>
-  <h2>Built because it&rsquo;s delightful, kept because it works.</h2>
-  <div class="extras-grid">
-    <div class="card">
-      <h3><span class="sw" style="background:var(--lb)"></span>Voice-reactive light bar</h3>
-      <p>Breathes while recording, flares with your voice level. Amber while L2 is held, so you always know which layer you&rsquo;re on.</p>
-    </div>
-    <div class="card">
-      <h3><span class="sw" style="background:var(--cir)"></span>Haptic vocabulary</h3>
-      <p>Distinct rumble patterns for start, stop, mode changes, and long presses. You stop looking at the screen surprisingly fast.</p>
-    </div>
-    <div class="card">
-      <h3><span class="sw" style="background:var(--tri)"></span>Claude Code on the light bar</h3>
-      <p>Optional <a href="https://github.com/SunkyYang/vibe-controller/blob/main/docs/claude-code-integration.md">state mirroring</a>: the bar shows whether Claude is thinking, waiting on you, or done.</p>
-    </div>
-    <div class="card">
-      <h3><span class="sw" style="background:var(--amber)"></span>Adaptive trigger weapon mode</h3>
-      <p>R2 can push back with <a href="https://github.com/SunkyYang/vibe-controller/blob/main/docs/adaptive-trigger.md">real trigger resistance</a> (USB only). Entirely unnecessary. Entirely worth it.</p>
-    </div>
-    <div class="card">
-      <h3><span class="sw" style="background:var(--cro)"></span>Sticks are a mouse</h3>
-      <p>Left stick moves the cursor, right stick scrolls, &#9633; clicks and drags. Couch-driving your Mac is a real workflow.</p>
-    </div>
-    <div class="card">
-      <h3><span class="sw" style="background:var(--core)"></span>Menu bar only</h3>
-      <p>No Dock icon, no window. Runs as a LaunchAgent at login, over USB or Bluetooth. Quit from the menu bar.</p>
-    </div>
-  </div>
-</section>
-
-<footer class="wrap">
+<footer>
   <div class="foot-row">
     <div>MIT licensed &middot; <a href="https://github.com/SunkyYang/vibe-controller">github.com/SunkyYang/vibe-controller</a></div>
-    <div class="shapes"><span>&#9651;</span><span>&#9675;</span><span>&#10005;</span><span>&#9633;</span></div>
+    <div class="foot-shapes"><span>&#9651;</span><span>&#9675;</span><span>&#10005;</span><span>&#9633;</span></div>
   </div>
 </footer>
 
@@ -408,7 +539,7 @@ footer{padding:40px 0 56px;border-top:1px solid var(--line)}
   var roTag=document.getElementById('ro-tag');
   var roTxt=document.getElementById('ro-txt');
   var reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var DEFAULT_TAG='L3 HUD';
+  var DEFAULT_TAG='L3 HUD';
   var DEFAULT_HTML='Hover a control to read its mapping — or hold <span class="b">R2</span> and see what happens.';
   var recording=false, typeTimer=null;
 
@@ -433,7 +564,6 @@ footer{padding:40px 0 56px;border-top:1px solid var(--line)}
     el.addEventListener('blur',hide);
   });
 
-  /* R2 press-and-hold simulation */
   var r2=document.getElementById('z-r2');
   var PHRASE='add a little rumble when the build passes, then commit it';
 
@@ -475,7 +605,6 @@ footer{padding:40px 0 56px;border-top:1px solid var(--line)}
     if(e.key===' '||e.key==='Enter'){e.preventDefault();if(recording){stopRec();}else{startRec();}}
   });
 
-  /* copy button */
   var btn=document.getElementById('copybtn');
   btn.addEventListener('click',function(){
     var cmds='git clone https://github.com/SunkyYang/vibe-controller.git\ncd vibe-controller\nswift build -c release\n./.build/release/VibeController';
