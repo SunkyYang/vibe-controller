@@ -9,3 +9,9 @@ Package.resolved
 # Generated from AppIcon.svg by scripts/build-icns.sh — only the SVG is source of truth.
 Resources/AppIcon.icns
 Resources/AppIcon.iconset/
+
+# test artifacts
+smoke*.log
+smoke*.pid
+*.log
+*.pid
