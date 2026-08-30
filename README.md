@@ -25,12 +25,13 @@ Requires macOS 11.3+, Swift 5.9+, and OpenWhispr configured for `Option+\`` in t
 | L1 / R1 | `Cmd+Shift+←` / `Cmd+Shift+→` (tab nav) |
 | ✕ / ○ | Enter / Esc |
 | D-Pad | Arrow keys with auto-repeat |
-| △ | Launch Ghostty + run `claude` (long press: `claude --resume`) |
+| △ | Cycle Claude Code mode — `Shift+Tab` (long press: `Ctrl+C` interrupt) |
 | □ / Touchpad click | Mouse left click (+ drag) / right click |
 | Left stick / Right stick | Mouse cursor / scroll wheel |
 | Create / Options | `Cmd+Shift+4` screenshot / `Tab` |
 | PS | Mission Control |
 | L2 + R2 | Dictate directly into Ghostty |
+| L2 + △ | Launch Ghostty + run `claude` (long press: `claude --resume`) |
 | L2 + ✕ / ○ | `Cmd+Z` undo / Delete |
 | L2 + D-Pad ↑ / → / ↓ | `Cmd+T` / `Cmd+D` / type `/new` |
 
