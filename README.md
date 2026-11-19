@@ -13,6 +13,8 @@ swift build -c release
 
 A game-controller icon appears in the menu bar. Plug in the DualSense (or pair via Bluetooth — long-press `PS + Create`), press R2, dictate, press R2 again.
 
+To play a game with the same controller, pick **Game Mode** in the menu bar: every key and mouse mapping is released (the pad stays connected, the light bar turns magenta, the icon fills in) so browser and native games read the raw pad. Pick **Vibe Mode** to get the work mappings back. The app always starts in Vibe Mode.
+
 Requires macOS 11.3+, Swift 5.9+, and OpenWhispr configured for `Option+\`` in tap mode. Prerequisites, autostart, and Accessibility setup: [`docs/install.md`](docs/install.md).
 
 ## Buttons

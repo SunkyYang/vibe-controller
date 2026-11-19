@@ -38,6 +38,12 @@ let kVK_ANSI_C:            CGKeyCode = 0x08
 /// produce different keystrokes. Currently: L2+○ → Delete.
 var l2ModifierHeld: Bool = false
 
+/// Game mode: the controller stays connected (battery, status) but every
+/// keyboard / mouse mapping is released, so games that read the pad directly
+/// (browser Gamepad API, native games) are not fighting synthetic input.
+/// Toggled from the status bar menu; always starts in Vibe mode.
+var gameMode: Bool = false
+
 /// Auto-repeat for Delete while L2+○ is held.
 var deleteRepeatTimer: DispatchSourceTimer?
 
@@ -1761,6 +1767,17 @@ func attach(_ controller: GCController) {
     watcher.controller = controller
     watcher.bumper = HapticBumper(controller: controller)
     watcher.breathing = BreathingLight(controller: controller)
+
+    if gameMode {
+        // Release any adaptive-trigger resistance: games want a plain trigger.
+        if let trig = watcher.trigger, trig.reacquire() {
+            trig.reset()
+        }
+        applyGameModeLight()
+        startBatteryMonitor(controller)
+        print("[mode] game mode: \(name) attached, no inputs mapped")
+        return
+    }
     // The DualSense touchpad as a mouse drifts noticeably under capacitive noise.
     // We disable it on purpose; left stick + buttonX (□) replace it cleanly.
 
@@ -1948,7 +1965,11 @@ func attach(_ controller: GCController) {
     watcher.stickScroller = scroller
     wireSticks()
 
-    // Battery monitor.
+    startBatteryMonitor(controller)
+}
+
+func startBatteryMonitor(_ controller: GCController) {
+    watcher.battery?.stop()
     let battery = BatteryMonitor(controller: controller)
     battery.bumper = watcher.bumper
     battery.statusUpdate = { line in
@@ -1984,6 +2005,88 @@ func detach(_ controller: GCController) {
     }
 }
 
+// MARK: - Game mode
+
+/// Steady magenta: unmistakably "not the work layer", and not one of the
+/// Claude state colours (blue / purple / amber / red) or the L2 amber.
+func applyGameModeLight() {
+    watcher.controller?.light?.color = GCColor(red: 0.85, green: 0.0, blue: 0.55)
+}
+
+/// Unhook every mapping installed by attach(), leaving the controller itself
+/// attached. Order matters: finish an in-flight recording through the normal
+/// trigger path first, while its handler still exists.
+func releaseInputs() {
+    if watcher.recording {
+        watcher.handle(value: 1)   // second press = stop, same as the user pulling R2
+        watcher.handle(value: 0)
+    }
+    if watcher.stickMouse?.mouseHeld == true {
+        postMouseButton(.left, down: false)
+    }
+    stopDeleteRepeat()
+    l2ModifierHeld = false
+
+    if let gamepad = watcher.controller?.extendedGamepad {
+        let buttons: [GCControllerButtonInput?] = [
+            gamepad.buttonA, gamepad.buttonB, gamepad.buttonX, gamepad.buttonY,
+            gamepad.leftShoulder, gamepad.rightShoulder,
+            gamepad.leftThumbstickButton, gamepad.rightThumbstickButton,
+            gamepad.buttonOptions, gamepad.buttonMenu, gamepad.buttonHome,
+            gamepad.dpad.up, gamepad.dpad.down, gamepad.dpad.left, gamepad.dpad.right,
+        ]
+        for b in buttons { b?.pressedChangedHandler = nil }
+        gamepad.leftTrigger.pressedChangedHandler = nil
+        gamepad.rightTrigger.valueChangedHandler = nil
+        gamepad.leftThumbstick.valueChangedHandler = nil
+        gamepad.rightThumbstick.valueChangedHandler = nil
+        gamepad.valueChangedHandler = nil
+        if #available(macOS 11.3, *), let ds = gamepad as? GCDualSenseGamepad {
+            ds.touchpadButton.pressedChangedHandler = nil
+        } else if let dualShock = gamepad as? GCDualShockGamepad {
+            dualShock.touchpadButton.pressedChangedHandler = nil
+        }
+    }
+
+    watcher.rawSticks?.onLeft = nil
+    watcher.rawSticks?.onRight = nil
+    watcher.stickMouse?.stop()
+    watcher.stickScroller?.stop()
+    watcher.dpadRepeat?.stop()
+    watcher.stickMouse = nil
+    watcher.stickScroller = nil
+    watcher.dpadRepeat = nil
+    watcher.trigger?.reset()
+
+    CheatSheetOverlay.shared.dismissHookInstaller = nil
+    CheatSheetOverlay.shared.hide()
+}
+
+func setGameMode(_ on: Bool) {
+    guard on != gameMode else { return }
+    if on {
+        releaseInputs()           // while gameMode is still false, so stop paths run normally
+        gameMode = true
+        watcher.claudeState?.suspend()
+        applyGameModeLight()
+        // Two quick ticks = "switched away from work".
+        for i in 0..<2 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1 * Double(i)) {
+                watcher.bumper?.bump(intensity: 0.7, sharpness: 0.8, duration: 0.05)
+            }
+        }
+    } else {
+        gameMode = false
+        if let c = watcher.controller {
+            attach(c)             // reinstalls every mapping, sticks and trigger profile
+        }
+        watcher.claudeState?.resume()
+        watcher.bumper?.bump(intensity: 0.7, sharpness: 0.5, duration: 0.08)
+    }
+    print("[mode] -> \(on ? "game" : "vibe")")
+    statusBar.reflectGameMode(on)
+}
+
 // MARK: - Status bar
 
 final class StatusBar: NSObject {
@@ -1993,6 +2096,16 @@ final class StatusBar: NSObject {
     private let micToggleItem = NSMenuItem(
         title: "Use DualSense Mic",
         action: #selector(toggleDualSenseMic),
+        keyEquivalent: ""
+    )
+    private let vibeModeItem = NSMenuItem(
+        title: "Vibe Mode (work)",
+        action: #selector(chooseVibeMode),
+        keyEquivalent: ""
+    )
+    private let gameModeItem = NSMenuItem(
+        title: "Game Mode (pad untouched)",
+        action: #selector(chooseGameMode),
         keyEquivalent: ""
     )
 
@@ -2006,6 +2119,14 @@ final class StatusBar: NSObject {
         batteryItem.isHidden = true
         menu.addItem(statusItem)
         menu.addItem(batteryItem)
+        menu.addItem(NSMenuItem.separator())
+
+        vibeModeItem.target = self
+        gameModeItem.target = self
+        vibeModeItem.state = .on
+        gameModeItem.state = .off
+        menu.addItem(vibeModeItem)
+        menu.addItem(gameModeItem)
         menu.addItem(NSMenuItem.separator())
 
         micToggleItem.target = self
@@ -2037,6 +2158,19 @@ final class StatusBar: NSObject {
         print("[pref] useDualSenseMic = \(Preferences.useDualSenseMic)")
     }
 
+    // Calls the free function. Inside this class a bare `setGameMode(...)`
+    // would resolve to a member first, so the UI-only method is named
+    // differently to keep that from silently happening.
+    @objc private func chooseVibeMode() { VibeController.setGameMode(false) }
+    @objc private func chooseGameMode() { VibeController.setGameMode(true) }
+
+    /// UI only: checkmarks + icon. The actual switch is the free `setGameMode`.
+    func reflectGameMode(_ on: Bool) {
+        vibeModeItem.state = on ? .off : .on
+        gameModeItem.state = on ? .on : .off
+        setIcon(on ? "gamecontroller.fill" : "gamecontroller")
+    }
+
     @objc private func showButtonMap() {
         CheatSheetOverlay.shared.show()
     }
@@ -2063,7 +2197,7 @@ final class StatusBar: NSObject {
     }
 
     func setRecording(_ on: Bool) {
-        setIcon(on ? "mic.fill" : "gamecontroller")
+        setIcon(on ? "mic.fill" : (gameMode ? "gamecontroller.fill" : "gamecontroller"))
     }
 
     private func setIcon(_ symbol: String) {

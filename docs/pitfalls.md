@@ -214,3 +214,20 @@ The BT output report is a different size and layout (0x31, 79 bytes, CRC32
 trailer) than the USB one (0x02, 47 bytes, no CRC). LED and rumble still work
 over BT because the GameController framework handles those itself — only the
 direct IOHID trigger writes are affected.
+
+## Swift
+
+### A bare call inside a class resolves to the member, not the free function
+
+**Symptom:** picking Game Mode in the menu moves the checkmark and changes the
+icon, but nothing else happens: no `[mode] -> game` in the log, the sticks still
+drive the cursor, R2 still toggles dictation.
+
+`StatusBar` had a UI-only method `setGameMode(_:)` and the menu action called
+`setGameMode(true)`, intending the free function of the same name. Inside the
+class, member lookup wins, so the action only repainted the menu. It compiles
+without a warning.
+
+The UI method is now `reflectGameMode(_:)` and the actions call
+`VibeController.setGameMode(...)` explicitly (module-qualified). Do not give a
+member the same name as a free function it is meant to call.
